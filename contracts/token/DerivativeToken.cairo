@@ -9,7 +9,7 @@ from openzeppelin.access.ownable.library import Ownable
 from openzeppelin.introspection.erc165.library import ERC165
 
 from contracts.common.token import Token
-from contracts.token.library.derived import Derived
+from contracts.token.library.derivable import Derivable
 
 #
 # Constructor
@@ -53,8 +53,19 @@ func getParentTokens{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
         parentTokens_len : felt,
         parentTokens : Token*
 ):
-    let (parentTokens_len, parentTokens) = Derived.parent_tokens(tokenId)
+    let (parentTokens_len, parentTokens) = Derivable.parent_tokens(tokenId)
     return (parentTokens_len, parentTokens)
+end
+
+@view
+func getChildTokens{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        tokenId : Uint256
+) -> (
+        childTokens_len : felt,
+        childTokens : Token*
+):
+    let (childTokens_len, childTokens) = Derivable.child_tokens(tokenId)
+    return (childTokens_len, childTokens)
 end
 
 #
@@ -75,6 +86,16 @@ func setParentTokens{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
         parentTokens_len : felt,
         parentTokens : Token*
 ):
-    Derived.set_parent_tokens(tokenId, parentTokens_len, parentTokens)
+    Derivable.set_parent_tokens(tokenId, parentTokens_len, parentTokens)
+    return ()
+end
+
+@external
+func setChildTokens{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        tokenId : Uint256,
+        childTokens_len : felt,
+        childTokens : Token*
+):
+    Derivable.set_child_tokens(tokenId, childTokens_len, childTokens)
     return ()
 end
