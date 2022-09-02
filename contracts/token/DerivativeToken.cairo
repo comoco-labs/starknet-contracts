@@ -9,7 +9,8 @@ from openzeppelin.access.ownable.library import Ownable
 from openzeppelin.introspection.erc165.library import ERC165
 
 from contracts.common.token import Token
-from contracts.token.library.derivable import Derivable
+from contracts.token.metadata.authorable import Authorable
+from contracts.token.metadata.derivable import Derivable
 
 #
 # Constructor
@@ -47,6 +48,16 @@ func supportsInterface{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_c
 end
 
 @view
+func getAuthorOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        tokenId : Uint256
+) -> (
+        author : felt
+):
+    let (author) = Authorable.author_of(tokenId)
+    return (author)
+end
+
+@view
 func getParentTokens{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         tokenId : Uint256
 ) -> (
@@ -77,25 +88,5 @@ func transferOwnership{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_c
         newOwner : felt
 ):
     Ownable.transfer_ownership(newOwner)
-    return ()
-end
-
-@external
-func setParentTokens{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        tokenId : Uint256,
-        parentTokens_len : felt,
-        parentTokens : Token*
-):
-    Derivable.set_parent_tokens(tokenId, parentTokens_len, parentTokens)
-    return ()
-end
-
-@external
-func setChildTokens{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        tokenId : Uint256,
-        childTokens_len : felt,
-        childTokens : Token*
-):
-    Derivable.set_child_tokens(tokenId, childTokens_len, childTokens)
     return ()
 end

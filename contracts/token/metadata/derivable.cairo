@@ -4,7 +4,7 @@
 
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.cairo_builtins import HashBuiltin
-from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.uint256 import Uint256, uint256_check
 
 from contracts.common.token import Token
 
@@ -41,9 +41,12 @@ namespace Derivable:
             parent_tokens : Token*
     ):
         alloc_locals
+        with_attr error_message("Derivable: token_id is not a valid Uint256"):
+            uint256_check(token_id)
+        end
+
         let (local parent_tokens_len) = Derivable_parent_tokens_len.read(token_id)
         let (local parent_tokens : Token*) = alloc()
-
         _parent_tokens(token_id, parent_tokens_len, parent_tokens)
         return (parent_tokens_len, parent_tokens)
     end
@@ -55,9 +58,12 @@ namespace Derivable:
             child_tokens : Token*
     ):
         alloc_locals
+        with_attr error_message("Derivable: token_id is not a valid Uint256"):
+            uint256_check(token_id)
+        end
+
         let (local child_tokens_len) = Derivable_child_tokens_len.read(token_id)
         let (local child_tokens : Token*) = alloc()
-
         _child_tokens(token_id, child_tokens_len, child_tokens)
         return (child_tokens_len, child_tokens)
     end
@@ -71,6 +77,10 @@ namespace Derivable:
             parent_tokens_len : felt,
             parent_tokens : Token*
     ):
+        with_attr error_message("Derivable: token_id is not a valid Uint256"):
+            uint256_check(token_id)
+        end
+
         _set_parent_tokens(token_id, parent_tokens_len, parent_tokens)
         Derivable_parent_tokens_len.write(token_id, parent_tokens_len)
         return ()
@@ -81,6 +91,10 @@ namespace Derivable:
             child_tokens_len : felt,
             child_tokens : Token*
     ):
+         with_attr error_message("Derivable: token_id is not a valid Uint256"):
+            uint256_check(token_id)
+        end
+
         _set_child_tokens(token_id, child_tokens_len, child_tokens)
         Derivable_child_tokens_len.write(token_id, child_tokens_len)
         return ()
