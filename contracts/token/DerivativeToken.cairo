@@ -140,25 +140,6 @@ func tokenURI{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
 end
 
 @view
-func owner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-) -> (
-        owner : felt
-):
-    let (owner) = Ownable.owner()
-    return (owner)
-end
-
-@view
-func isAdmin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        user : felt
-) -> (
-        res : felt
-):
-    let (res) = AccessControl.has_role(ADMIN_ROLE, user)
-    return (res)
-end
-
-@view
 func authorOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         tokenId : Uint256
 ) -> (
@@ -188,6 +169,25 @@ func childTokensOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
 ):
     let (childTokens_len, childTokens) = Derivable.child_tokens_of(tokenId)
     return (childTokens_len, childTokens)
+end
+
+@view
+func owner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+) -> (
+        owner : felt
+):
+    let (owner) = Ownable.owner()
+    return (owner)
+end
+
+@view
+func isAdmin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        user : felt
+) -> (
+        res : felt
+):
+    let (res) = AccessControl.has_role(ADMIN_ROLE, user)
+    return (res)
 end
 
 #
@@ -272,7 +272,7 @@ func setAdmin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
         assert_not_equal(user, caller)
     end
     with_attr error_message("DerivativeToken: granted is not a Cairo boolean"):
-        assert granted * (1 - granted) = 0
+        assert granted * (granted - 1) = 0
     end
     if granted == TRUE:
         AccessControl.grant_role(ADMIN_ROLE, user)
