@@ -6,7 +6,7 @@ from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.math import assert_not_zero, assert_not_equal
 from starkware.cairo.common.uint256 import Uint256
-from starkware.starknet.common.syscalls import get_caller_address
+from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
 
 from openzeppelin.access.accesscontrol.library import AccessControl
 from openzeppelin.access.ownable.library import Ownable
@@ -14,6 +14,7 @@ from openzeppelin.introspection.erc165.library import ERC165
 from openzeppelin.token.erc721.library import ERC721
 
 from contracts.common.token import Token
+from contracts.registry.interface import ITokenRegistry
 from contracts.token.metadata.authorable import Authorable
 from contracts.token.metadata.derivable import Derivable
 
@@ -25,6 +26,22 @@ const OWNER_ROLE = 0
 const ADMIN_ROLE = 1
 
 #
+# Events
+#
+
+@event
+func RegistryChanged(previousRegistry : felt, newRegistry : felt):
+end
+
+#
+# Storage
+#
+
+@storage_var
+func DerivativeToken_registry() -> (registry : felt):
+end
+
+#
 # Constructor
 #
 
@@ -32,7 +49,8 @@ const ADMIN_ROLE = 1
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         name : felt,
         symbol : felt,
-        owner : felt
+        owner : felt,
+        registry : felt
 ):
     ERC721.initializer(name, symbol)
     Ownable.initializer(owner)
@@ -40,6 +58,7 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     AccessControl._set_role_admin(ADMIN_ROLE, OWNER_ROLE)
     AccessControl._set_role_admin(OWNER_ROLE, OWNER_ROLE)
     AccessControl._grant_role(OWNER_ROLE, owner)
+    _update_registry(registry)
     return ()
 end
 
@@ -190,6 +209,15 @@ func isAdmin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     return (res)
 end
 
+@view
+func registry{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+) -> (
+        registry : felt
+):
+    let (registry) = DerivativeToken_registry.read()
+    return (registry)
+end
+
 #
 # Externals
 #
@@ -282,6 +310,18 @@ func setAdmin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
     return ()
 end
 
+@external
+func updateRegistry{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        newRegistry : felt
+):
+    with_attr error_message("DerivativeToken: newRegistry is the zero address"):
+        assert_not_zero(newRegistry)
+    end
+    assert_only_owner_or_admin()
+    _update_registry(newRegistry)
+    return ()
+end
+
 #
 # Internals
 #
@@ -299,4 +339,13 @@ func _is_owner_or_admin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_
 
     let (res) = AccessControl.has_role(ADMIN_ROLE, caller)
     return (res)
+end
+
+func _update_registry{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        new_registry : felt
+):
+    let (previous_registry) = DerivativeToken_registry.read()
+    DerivativeToken_registry.write(new_registry)
+    RegistryChanged.emit(previous_registry, new_registry)
+    return ()
 end

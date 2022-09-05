@@ -8,6 +8,18 @@ from starkware.cairo.common.math import assert_not_zero
 from openzeppelin.access.ownable.library import Ownable
 
 #
+# Events
+#
+
+@event
+func MappingInfoRegistered(l1Addr : felt, l2Addr : felt, sot : felt):
+end
+
+@event
+func MappingInfoUnregistered(l1Addr : felt, l2Addr : felt, sot : felt):
+end
+
+#
 # Storage
 #
 
@@ -76,6 +88,20 @@ func getMappingInfoForL2Address{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*
 end
 
 @view
+func getMappingInfoForAddresses{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        l1Addr : felt,
+        l2Addr : felt
+) -> (
+        sot : felt
+):
+    with_attr error_message("TokenRegistry: either l1Addr or l2Addr is the zero address"):
+        assert_not_zero(l1Addr * l2Addr)
+    end
+    let (sot) = TokenRegistry_source_of_truth.read(l1Addr, l2Addr)
+    return (sot)
+end
+
+@view
 func owner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
 ) -> (
         owner : felt
@@ -112,6 +138,7 @@ func setMappingInfoForAddresses{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*
     TokenRegistry_l2_addr_for_l1.write(l1Addr, l2Addr)
     TokenRegistry_l1_addr_for_l2.write(l2Addr, l1Addr)
     TokenRegistry_source_of_truth.write(l1Addr, l2Addr, sot)
+    MappingInfoRegistered.emit(l1Addr, l2Addr, sot)
     return ()
 end
 
@@ -131,6 +158,7 @@ func clearMappingInfoForAddresses{syscall_ptr : felt*, pedersen_ptr : HashBuilti
     TokenRegistry_l2_addr_for_l1.write(l1Addr, 0)
     TokenRegistry_l1_addr_for_l2.write(l2Addr, 0)
     TokenRegistry_source_of_truth.write(l1Addr, l2Addr, 0)
+    MappingInfoUnregistered.emit(l1Addr, l2Addr, sot)
     return ()
 end
 
