@@ -13,10 +13,14 @@ from openzeppelin.access.ownable.library import Ownable
 from openzeppelin.introspection.erc165.library import ERC165
 from openzeppelin.token.erc721.library import ERC721
 
+from contracts.common.royalty import Royalty
 from contracts.common.token import Token
+from contracts.license.interface import IDerivativeLicense
 from contracts.registry.interface import ITokenRegistry
 from contracts.token.metadata.authorable import Authorable
 from contracts.token.metadata.derivable import Derivable
+from contracts.token.proxy.license import LicenseProxy
+from contracts.token.proxy.registry import RegistryProxy
 
 #
 # Constants
@@ -24,22 +28,6 @@ from contracts.token.metadata.derivable import Derivable
 
 const OWNER_ROLE = 0
 const ADMIN_ROLE = 1
-
-#
-# Events
-#
-
-@event
-func RegistryChanged(previousRegistry : felt, newRegistry : felt):
-end
-
-#
-# Storage
-#
-
-@storage_var
-func DerivativeToken_registry() -> (registry : felt):
-end
 
 #
 # Constructor
@@ -50,6 +38,7 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
         name : felt,
         symbol : felt,
         owner : felt,
+        license : felt,
         registry : felt
 ):
     ERC721.initializer(name, symbol)
@@ -58,7 +47,8 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     AccessControl._set_role_admin(ADMIN_ROLE, OWNER_ROLE)
     AccessControl._set_role_admin(OWNER_ROLE, OWNER_ROLE)
     AccessControl._grant_role(OWNER_ROLE, owner)
-    _update_registry(registry)
+    LicenseProxy.initializer(license)
+    RegistryProxy.initializer(registry)
     return ()
 end
 
@@ -191,6 +181,49 @@ func childTokensOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
 end
 
 @view
+func licenseVersion{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+) -> (
+        version : felt
+):
+    let (license) = LicenseProxy.license()
+    let (version) = IDerivativeLicense.library_call_version(license)
+    return (version)
+end
+
+@view
+func royalties{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        tokenId : Uint256
+) -> (
+        royalties_len : felt, royalties : Royalty*
+):
+    let (license) = LicenseProxy.license()
+    let (royalties_len, royalties) = IDerivativeLicense.library_call_royalties(license, tokenId)
+    return (royalties_len, royalties)
+end
+
+@view
+func collectionSettings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        key : felt
+) -> (
+        value : felt
+):
+    let (license) = LicenseProxy.license()
+    let (value) = IDerivativeLicense.library_call_collectionSettings(license, key)
+    return (value)
+end
+
+@view
+func tokenSettings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        tokenId : Uint256, key : felt
+) -> (
+        value : felt
+):
+    let (license) = LicenseProxy.license()
+    let (value) = IDerivativeLicense.library_call_tokenSettings(license, tokenId, key)
+    return (value)
+end
+
+@view
 func owner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
 ) -> (
         owner : felt
@@ -210,11 +243,20 @@ func isAdmin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
 end
 
 @view
+func license{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+) -> (
+        license : felt
+):
+    let (license) = LicenseProxy.license()
+    return (license)
+end
+
+@view
 func registry{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
 ) -> (
         registry : felt
 ):
-    let (registry) = DerivativeToken_registry.read()
+    let (registry) = RegistryProxy.registry()
     return (registry)
 end
 
@@ -269,10 +311,30 @@ func mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         to : felt,
         tokenId : Uint256
 ):
-    # TODO: Mint L1-sourced token, or Mint L2-sourced token with parents
-    Ownable.assert_only_owner()
+    # TODO: Check DerivativeLicense and TokenRegistry
+    assert_only_owner_or_admin()
     ERC721._mint(to, tokenId)
     # ERC721._set_token_uri(tokenId, tokenURI)
+    return ()
+end
+
+@external
+func setCollectionSettings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        key : felt, value : felt
+):
+    Ownable.assert_only_owner()
+    let (license) = LicenseProxy.license()
+    IDerivativeLicense.library_call_setCollectionSettings(license, key, value)
+    return ()
+end
+
+@external
+func setTokenSettings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        tokenId : Uint256, key : felt, value : felt
+):
+    ERC721.assert_only_token_owner(tokenId)
+    let (license) = LicenseProxy.license()
+    IDerivativeLicense.library_call_setTokenSettings(license, tokenId, key, value)
     return ()
 end
 
@@ -311,14 +373,20 @@ func setAdmin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
 end
 
 @external
+func updateLicense{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        newLicense : felt
+):
+    assert_only_owner_or_admin()
+    LicenseProxy._update_license(newLicense)
+    return ()
+end
+
+@external
 func updateRegistry{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         newRegistry : felt
 ):
-    with_attr error_message("DerivativeToken: newRegistry is the zero address"):
-        assert_not_zero(newRegistry)
-    end
     assert_only_owner_or_admin()
-    _update_registry(newRegistry)
+    RegistryProxy._update_registry(newRegistry)
     return ()
 end
 
@@ -339,13 +407,4 @@ func _is_owner_or_admin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_
 
     let (res) = AccessControl.has_role(ADMIN_ROLE, caller)
     return (res)
-end
-
-func _update_registry{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        new_registry : felt
-):
-    let (previous_registry) = DerivativeToken_registry.read()
-    DerivativeToken_registry.write(new_registry)
-    RegistryChanged.emit(previous_registry, new_registry)
-    return ()
 end
