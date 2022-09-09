@@ -26,8 +26,8 @@ from contracts.token.proxy.registry import RegistryProxy
 # Constants
 #
 
-const OWNER_ROLE = 0
-const ADMIN_ROLE = 1
+const OWNER_ROLE = 'OWNER'
+const ADMIN_ROLE = 'ADMIN'
 
 #
 # Constructor
@@ -314,7 +314,26 @@ func mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     # TODO: Check DerivativeLicense and TokenRegistry
     assert_only_owner_or_admin()
     ERC721._mint(to, tokenId)
-    # ERC721._set_token_uri(tokenId, tokenURI)
+    return ()
+end
+
+@external
+func burn{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        tokenId : Uint256
+):
+    # TODO: Check permission
+    ERC721.assert_only_token_owner(tokenId)
+    ERC721._burn(tokenId)
+    return ()
+end
+
+@external
+func setTokenURI{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        tokenId : Uint256,
+        tokenURI : felt
+):
+    assert_only_owner_or_admin()
+    ERC721._set_token_uri(tokenId, tokenURI)
     return ()
 end
 
@@ -391,7 +410,7 @@ func updateRegistry{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
 end
 
 #
-# Internals
+# Private
 #
 
 func _is_owner_or_admin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(

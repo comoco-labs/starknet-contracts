@@ -100,66 +100,66 @@ namespace Derivable:
         return ()
     end
 
-    #
-    # Internals
-    #
+end
 
-    func _parent_tokens_of{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-            token_id : Uint256,
-            parent_tokens_len : felt,
-            parent_tokens : Token*
-    ):
-        if parent_tokens_len == 0:
-            return ()
-        end
+#
+# Private
+#
 
-        let (token) = Derivable_parent_tokens.read(token_id, parent_tokens_len - 1)
-        assert [parent_tokens] = token
-        _parent_tokens_of(token_id, parent_tokens_len - 1, parent_tokens + Token.SIZE)
+func _parent_tokens_of{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        token_id : Uint256,
+        parent_tokens_len : felt,
+        parent_tokens : Token*
+):
+    if parent_tokens_len == 0:
         return ()
     end
 
-    func _child_tokens_of{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-            token_id : Uint256,
-            child_tokens_len : felt,
-            child_tokens : Token*
-    ):
-        if child_tokens_len == 0:
-            return ()
-        end
+    let (token) = Derivable_parent_tokens.read(token_id, parent_tokens_len - 1)
+    assert [parent_tokens] = token
+    _parent_tokens_of(token_id, parent_tokens_len - 1, parent_tokens + Token.SIZE)
+    return ()
+end
 
-        let (token) = Derivable_child_tokens.read(token_id, child_tokens_len - 1)
-        assert [child_tokens] = token
-        _child_tokens_of(token_id, child_tokens_len - 1, child_tokens + Token.SIZE)
+func _child_tokens_of{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        token_id : Uint256,
+        child_tokens_len : felt,
+        child_tokens : Token*
+):
+    if child_tokens_len == 0:
         return ()
     end
 
-    func _set_parent_tokens_for{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-            token_id : Uint256,
-            parent_tokens_len : felt,
-            parent_tokens : Token*
-    ):
-        if parent_tokens_len == 0:
-            return ()
-        end
+    let (token) = Derivable_child_tokens.read(token_id, child_tokens_len - 1)
+    assert [child_tokens] = token
+    _child_tokens_of(token_id, child_tokens_len - 1, child_tokens + Token.SIZE)
+    return ()
+end
 
-        Derivable_parent_tokens.write(token_id, parent_tokens_len - 1, [parent_tokens])
-        _set_parent_tokens_for(token_id, parent_tokens_len - 1, parent_tokens + Token.SIZE)
+func _set_parent_tokens_for{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        token_id : Uint256,
+        parent_tokens_len : felt,
+        parent_tokens : Token*
+):
+    if parent_tokens_len == 0:
         return ()
     end
 
-    func _set_child_tokens_for{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-            token_id : Uint256,
-            child_tokens_len : felt,
-            child_tokens : Token*
-    ):
-        if child_tokens_len == 0:
-            return ()
-        end
+    Derivable_parent_tokens.write(token_id, parent_tokens_len - 1, [parent_tokens])
+    _set_parent_tokens_for(token_id, parent_tokens_len - 1, parent_tokens + Token.SIZE)
+    return ()
+end
 
-        Derivable_child_tokens.write(token_id, child_tokens_len - 1, [child_tokens])
-        _set_child_tokens_for(token_id, child_tokens_len - 1, child_tokens + Token.SIZE)
+func _set_child_tokens_for{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        token_id : Uint256,
+        child_tokens_len : felt,
+        child_tokens : Token*
+):
+    if child_tokens_len == 0:
         return ()
     end
 
+    Derivable_child_tokens.write(token_id, child_tokens_len - 1, [child_tokens])
+    _set_child_tokens_for(token_id, child_tokens_len - 1, child_tokens + Token.SIZE)
+    return ()
 end
