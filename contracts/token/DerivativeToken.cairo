@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 
 %lang starknet
 
@@ -22,408 +22,406 @@ from contracts.token.metadata.derivable import Derivable
 from contracts.token.proxy.license import LicenseProxy
 from contracts.token.proxy.registry import RegistryProxy
 
-#
-# Constants
-#
+//
+// Constants
+//
 
-const OWNER_ROLE = 'OWNER'
-const ADMIN_ROLE = 'ADMIN'
+const OWNER_ROLE = 'OWNER';
+const ADMIN_ROLE = 'ADMIN';
 
-#
-# Constructor
-#
+//
+// Constructor
+//
 
 @constructor
-func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        name : felt,
-        symbol : felt,
-        owner : felt,
-        license : felt,
-        registry : felt
-):
-    ERC721.initializer(name, symbol)
-    Ownable.initializer(owner)
-    AccessControl.initializer()
-    AccessControl._set_role_admin(ADMIN_ROLE, OWNER_ROLE)
-    AccessControl._set_role_admin(OWNER_ROLE, OWNER_ROLE)
-    AccessControl._grant_role(OWNER_ROLE, owner)
-    LicenseProxy.initializer(license)
-    RegistryProxy.initializer(registry)
-    return ()
-end
+func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        name: felt,
+        symbol: felt,
+        owner: felt,
+        license: felt,
+        registry: felt
+) {
+    ERC721.initializer(name, symbol);
+    Ownable.initializer(owner);
+    AccessControl.initializer();
+    AccessControl._set_role_admin(ADMIN_ROLE, OWNER_ROLE);
+    AccessControl._set_role_admin(OWNER_ROLE, OWNER_ROLE);
+    AccessControl._grant_role(OWNER_ROLE, owner);
+    LicenseProxy.initializer(license);
+    RegistryProxy.initializer(registry);
+    return ();
+}
 
-#
-# Modifiers
-#
+//
+// Modifiers
+//
 
-func assert_only_owner_or_admin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-):
-    let (authorized) = _is_owner_or_admin()
-    with_attr error_message("DerivativeToken: caller is not owner or admin"):
-        assert authorized = TRUE
-    end
-    return ()
-end
+func assert_only_owner_or_admin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+) {
+    let authorized = _is_owner_or_admin();
+    with_attr error_message("DerivativeToken: caller is not owner or admin") {
+        assert authorized = TRUE;
+    }
+    return ();
+}
 
-#
-# Getters
-#
-
-@view
-func supportsInterface{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        interfaceId : felt
-) -> (
-        success : felt
-):
-    let (success) = ERC165.supports_interface(interfaceId)
-    return (success)
-end
+//
+// Getters
+//
 
 @view
-func name{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+func supportsInterface{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        interfaceId: felt
 ) -> (
-        name : felt
-):
-    let (name) = ERC721.name()
-    return (name)
-end
+        success: felt
+) {
+    let (success) = ERC165.supports_interface(interfaceId);
+    return (success=success);
+}
 
 @view
-func symbol{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+func name{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 ) -> (
-        symbol : felt
-):
-    let (symbol) = ERC721.symbol()
-    return (symbol)
-end
+        name: felt
+) {
+    let (name) = ERC721.name();
+    return (name=name);
+}
 
 @view
-func balanceOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        owner : felt
+func symbol{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 ) -> (
-        balance : Uint256
-):
-    let (balance) = ERC721.balance_of(owner)
-    return (balance)
-end
+        symbol: felt
+) {
+    let (symbol) = ERC721.symbol();
+    return (symbol=symbol);
+}
 
 @view
-func ownerOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        tokenId : Uint256
+func balanceOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        owner: felt
 ) -> (
-        owner : felt
-):
-    let (owner) = ERC721.owner_of(tokenId)
-    return (owner)
-end
+        balance: Uint256
+) {
+    let (balance) = ERC721.balance_of(owner);
+    return (balance=balance);
+}
 
 @view
-func getApproved{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        tokenId : Uint256
+func ownerOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256
 ) -> (
-        approved : felt
-):
-    let (approved) = ERC721.get_approved(tokenId)
-    return (approved)
-end
+        owner: felt
+) {
+    let (owner) = ERC721.owner_of(tokenId);
+    return (owner=owner);
+}
 
 @view
-func isApprovedForAll{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        owner : felt,
-        operator : felt
+func getApproved{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256
 ) -> (
-        isApproved : felt
-):
-    let (isApproved) = ERC721.is_approved_for_all(owner, operator)
-    return (isApproved)
-end
+        approved: felt
+) {
+    let (approved) = ERC721.get_approved(tokenId);
+    return (approved=approved);
+}
 
 @view
-func tokenURI{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        tokenId : Uint256
+func isApprovedForAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        owner: felt,
+        operator: felt
 ) -> (
-        tokenURI : felt
-):
-    let (tokenURI) = ERC721.token_uri(tokenId)
-    return (tokenURI)
-end
+        isApproved: felt
+) {
+    let (isApproved) = ERC721.is_approved_for_all(owner, operator);
+    return (isApproved=isApproved);
+}
 
 @view
-func authorOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        tokenId : Uint256
+func tokenURI{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256
 ) -> (
-        author : felt
-):
-    let (author) = Authorable.author_of(tokenId)
-    return (author)
-end
+        tokenURI: felt
+) {
+    let (tokenURI) = ERC721.token_uri(tokenId);
+    return (tokenURI=tokenURI);
+}
 
 @view
-func parentTokensOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        tokenId : Uint256
+func authorOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256
 ) -> (
-        parentTokens_len : felt,
-        parentTokens : Token*
-):
-    let (parentTokens_len, parentTokens) = Derivable.parent_tokens_of(tokenId)
-    return (parentTokens_len, parentTokens)
-end
+        author: felt
+) {
+    let (author) = Authorable.author_of(tokenId);
+    return (author=author);
+}
 
 @view
-func childTokensOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        tokenId : Uint256
+func parentTokensOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256
 ) -> (
-        childTokens_len : felt,
-        childTokens : Token*
-):
-    let (childTokens_len, childTokens) = Derivable.child_tokens_of(tokenId)
-    return (childTokens_len, childTokens)
-end
+        parentTokens_len: felt,
+        parentTokens: Token*
+) {
+    let (parentTokens_len, parentTokens) = Derivable.parent_tokens_of(tokenId);
+    return (parentTokens_len=parentTokens_len, parentTokens=parentTokens);
+}
 
 @view
-func licenseVersion{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+func childTokensOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256
 ) -> (
-        version : felt
-):
-    let (license) = LicenseProxy.license()
-    let (version) = IDerivativeLicense.library_call_version(license)
-    return (version)
-end
+        childTokens_len: felt,
+        childTokens: Token*
+) {
+    let (childTokens_len, childTokens) = Derivable.child_tokens_of(tokenId);
+    return (childTokens_len=childTokens_len, childTokens=childTokens);
+}
 
 @view
-func royalties{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        tokenId : Uint256
+func licenseVersion{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 ) -> (
-        royalties_len : felt, royalties : Royalty*
-):
-    let (license) = LicenseProxy.license()
-    let (royalties_len, royalties) = IDerivativeLicense.library_call_royalties(license, tokenId)
-    return (royalties_len, royalties)
-end
+        version: felt
+) {
+    let (license) = LicenseProxy.license();
+    let (version) = IDerivativeLicense.library_call_version(license);
+    return (version=version);
+}
 
 @view
-func collectionSettings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        key : felt
+func royalties{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256
 ) -> (
-        value : felt
-):
-    let (license) = LicenseProxy.license()
-    let (value) = IDerivativeLicense.library_call_collectionSettings(license, key)
-    return (value)
-end
+        royalties_len: felt, royalties: Royalty*
+) {
+    let (license) = LicenseProxy.license();
+    let (royalties_len, royalties) = IDerivativeLicense.library_call_royalties(license, tokenId);
+    return (royalties_len=royalties_len, royalties=royalties);
+}
 
 @view
-func tokenSettings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        tokenId : Uint256, key : felt
+func collectionSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        key: felt
 ) -> (
-        value : felt
-):
-    let (license) = LicenseProxy.license()
-    let (value) = IDerivativeLicense.library_call_tokenSettings(license, tokenId, key)
-    return (value)
-end
+        value: felt
+) {
+    let (license) = LicenseProxy.license();
+    let (value) = IDerivativeLicense.library_call_collectionSettings(license, key);
+    return (value=value);
+}
 
 @view
-func owner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+func tokenSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256, key: felt
 ) -> (
-        owner : felt
-):
-    let (owner) = Ownable.owner()
-    return (owner)
-end
+        value: felt
+) {
+    let (license) = LicenseProxy.license();
+    let (value) = IDerivativeLicense.library_call_tokenSettings(license, tokenId, key);
+    return (value=value);
+}
 
 @view
-func isAdmin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        user : felt
+func owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 ) -> (
-        res : felt
-):
-    let (res) = AccessControl.has_role(ADMIN_ROLE, user)
-    return (res)
-end
+        owner: felt
+) {
+    let (owner) = Ownable.owner();
+    return (owner=owner);
+}
 
 @view
-func license{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+func isAdmin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        user: felt
 ) -> (
-        license : felt
-):
-    let (license) = LicenseProxy.license()
-    return (license)
-end
+        res: felt
+) {
+    let (res) = AccessControl.has_role(ADMIN_ROLE, user);
+    return (res=res);
+}
 
 @view
-func registry{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+func license{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 ) -> (
-        registry : felt
-):
-    let (registry) = RegistryProxy.registry()
-    return (registry)
-end
+        license: felt
+) {
+    let (license) = LicenseProxy.license();
+    return (license=license);
+}
 
-#
-# Externals
-#
+@view
+func registry{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+) -> (
+        registry: felt
+) {
+    let (registry) = RegistryProxy.registry();
+    return (registry=registry);
+}
+
+//
+// Externals
+//
 
 @external
-func approve{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        to : felt,
-        tokenId : Uint256
-):
-    ERC721.approve(to, tokenId)
-    return ()
-end
+func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        to: felt,
+        tokenId: Uint256
+) {
+    ERC721.approve(to, tokenId);
+    return ();
+}
 
 @external
-func setApprovalForAll{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        operator : felt,
-        approved : felt
-):
-    ERC721.set_approval_for_all(operator, approved)
-    return ()
-end
+func setApprovalForAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        operator: felt,
+        approved: felt
+) {
+    ERC721.set_approval_for_all(operator, approved);
+    return ();
+}
 
 @external
-func transferFrom{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        from_ : felt,
-        to : felt,
-        tokenId : Uint256
-):
-    # TODO: Check DerivativeLicense
-    ERC721.transfer_from(from_, to, tokenId)
-    return ()
-end
+func transferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        from_: felt,
+        to: felt,
+        tokenId: Uint256
+) {
+    // TODO: Check DerivativeLicense
+    ERC721.transfer_from(from_, to, tokenId);
+    return ();
+}
 
 @external
-func safeTransferFrom{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        from_ : felt,
-        to : felt,
-        tokenId : Uint256,
-        data_len : felt,
-        data : felt*
-):
-    # TODO: Check DerivativeLicense
-    ERC721.safe_transfer_from(from_, to, tokenId, data_len, data)
-    return ()
-end
+func safeTransferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        from_: felt,
+        to: felt,
+        tokenId: Uint256,
+        data_len: felt,
+        data: felt*
+) {
+    // TODO: Check DerivativeLicense
+    ERC721.safe_transfer_from(from_, to, tokenId, data_len, data);
+    return ();
+}
 
 @external
-func mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        to : felt,
-        tokenId : Uint256
-):
-    # TODO: Check DerivativeLicense and TokenRegistry
-    assert_only_owner_or_admin()
-    ERC721._mint(to, tokenId)
-    return ()
-end
+func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        to: felt,
+        tokenId: Uint256
+) {
+    // TODO: Check DerivativeLicense and TokenRegistry
+    assert_only_owner_or_admin();
+    ERC721._mint(to, tokenId);
+    return ();
+}
 
 @external
-func burn{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        tokenId : Uint256
-):
-    # TODO: Check permission
-    ERC721.assert_only_token_owner(tokenId)
-    ERC721._burn(tokenId)
-    return ()
-end
+func burn{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256
+) {
+    // TODO: Check permission
+    ERC721.assert_only_token_owner(tokenId);
+    ERC721._burn(tokenId);
+    return ();
+}
 
 @external
-func setTokenURI{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        tokenId : Uint256,
-        tokenURI : felt
-):
-    assert_only_owner_or_admin()
-    ERC721._set_token_uri(tokenId, tokenURI)
-    return ()
-end
+func setTokenURI{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        tokenURI: felt
+) {
+    assert_only_owner_or_admin();
+    ERC721._set_token_uri(tokenId, tokenURI);
+    return ();
+}
 
 @external
-func setCollectionSettings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        key : felt, value : felt
-):
-    Ownable.assert_only_owner()
-    let (license) = LicenseProxy.license()
-    IDerivativeLicense.library_call_setCollectionSettings(license, key, value)
-    return ()
-end
+func setCollectionSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        key: felt, value: felt
+) {
+    Ownable.assert_only_owner();
+    let (license) = LicenseProxy.license();
+    IDerivativeLicense.library_call_setCollectionSettings(license, key, value);
+    return ();
+}
 
 @external
-func setTokenSettings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        tokenId : Uint256, key : felt, value : felt
-):
-    ERC721.assert_only_token_owner(tokenId)
-    let (license) = LicenseProxy.license()
-    IDerivativeLicense.library_call_setTokenSettings(license, tokenId, key, value)
-    return ()
-end
+func setTokenSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256, key: felt, value: felt
+) {
+    ERC721.assert_only_token_owner(tokenId);
+    let (license) = LicenseProxy.license();
+    IDerivativeLicense.library_call_setTokenSettings(license, tokenId, key, value);
+    return ();
+}
 
 @external
-func transferOwnership{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        newOwner : felt
-):
-    Ownable.transfer_ownership(newOwner)
-    setAdmin(newOwner, FALSE)
-    AccessControl.grant_role(OWNER_ROLE, newOwner)
-    let (caller) = get_caller_address()
-    AccessControl.renounce_role(OWNER_ROLE, caller)
-    return ()
-end
+func transferOwnership{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        newOwner: felt
+) {
+    Ownable.transfer_ownership(newOwner);
+    setAdmin(newOwner, FALSE);
+    AccessControl.grant_role(OWNER_ROLE, newOwner);
+    let (caller) = get_caller_address();
+    AccessControl.renounce_role(OWNER_ROLE, caller);
+    return ();
+}
 
 @external
-func setAdmin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        user : felt, granted : felt
-):
-    with_attr error_message("DerivativeToken: user is the zero address"):
-        assert_not_zero(user)
-    end
-    let (caller) = get_caller_address()
-    with_attr error_message("DerivativeToken: cannot set caller as admin"):
-        assert_not_equal(user, caller)
-    end
-    with_attr error_message("DerivativeToken: granted is not a Cairo boolean"):
-        assert granted * (granted - 1) = 0
-    end
-    if granted == TRUE:
-        AccessControl.grant_role(ADMIN_ROLE, user)
-    else:
-        AccessControl.revoke_role(ADMIN_ROLE, user)
-    end
-    return ()
-end
+func setAdmin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        user: felt, granted: felt
+) {
+    with_attr error_message("DerivativeToken: user is the zero address") {
+        assert_not_zero(user);
+    }
+    let (caller) = get_caller_address();
+    with_attr error_message("DerivativeToken: cannot set caller as admin") {
+        assert_not_equal(user, caller);
+    }
+    with_attr error_message("DerivativeToken: granted is not a Cairo boolean") {
+        assert granted * (granted - 1) = 0;
+    }
+    if (granted == TRUE) {
+        AccessControl.grant_role(ADMIN_ROLE, user);
+    } else {
+        AccessControl.revoke_role(ADMIN_ROLE, user);
+    }
+    return ();
+}
 
 @external
-func updateLicense{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        newLicense : felt
-):
-    assert_only_owner_or_admin()
-    LicenseProxy._update_license(newLicense)
-    return ()
-end
+func updateLicense{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        newLicense: felt
+) {
+    assert_only_owner_or_admin();
+    LicenseProxy._update_license(newLicense);
+    return ();
+}
 
 @external
-func updateRegistry{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        newRegistry : felt
-):
-    assert_only_owner_or_admin()
-    RegistryProxy._update_registry(newRegistry)
-    return ()
-end
+func updateRegistry{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        newRegistry: felt
+) {
+    assert_only_owner_or_admin();
+    RegistryProxy._update_registry(newRegistry);
+    return ();
+}
 
-#
-# Private
-#
+//
+// Private
+//
 
-func _is_owner_or_admin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-) -> (
-        res : felt
-):
-    let (caller) = get_caller_address()
+func _is_owner_or_admin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+) -> felt {
+    let (caller) = get_caller_address();
 
-    let (owner) = Ownable.owner()
-    if caller == owner:
-        return (TRUE)
-    end
+    let (owner) = Ownable.owner();
+    if (caller == owner) {
+        return TRUE;
+    }
 
-    let (res) = AccessControl.has_role(ADMIN_ROLE, caller)
-    return (res)
-end
+    let (res) = AccessControl.has_role(ADMIN_ROLE, caller);
+    return res;
+}
