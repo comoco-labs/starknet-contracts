@@ -108,16 +108,16 @@ namespace Derivable {
 
 func _parent_tokens_of{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         token_id: Uint256,
-        parent_tokens_len: felt,
-        parent_tokens: Token*
+        parent_tokens_index: felt,
+        parent_tokens_ptr: Token*
 ) {
-    if (parent_tokens_len == 0) {
+    if (parent_tokens_index == 0) {
         return ();
     }
 
-    let (token) = Derivable_parent_tokens.read(token_id, parent_tokens_len - 1);
-    assert [parent_tokens] = token;
-    _parent_tokens_of(token_id, parent_tokens_len - 1, parent_tokens + Token.SIZE);
+    let (token) = Derivable_parent_tokens.read(token_id, parent_tokens_index - 1);
+    assert [parent_tokens_ptr] = token;
+    _parent_tokens_of(token_id, parent_tokens_index - 1, parent_tokens_ptr + Token.SIZE);
     return ();
 }
 
@@ -138,15 +138,15 @@ func _child_tokens_of{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
 
 func _set_parent_tokens_for{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         token_id: Uint256,
-        parent_tokens_len: felt,
-        parent_tokens: Token*
+        parent_tokens_index: felt,
+        parent_tokens_ptr: Token*
 ) {
-    if (parent_tokens_len == 0) {
+    if (parent_tokens_index == 0) {
         return ();
     }
 
-    Derivable_parent_tokens.write(token_id, parent_tokens_len - 1, [parent_tokens]);
-    _set_parent_tokens_for(token_id, parent_tokens_len - 1, parent_tokens + Token.SIZE);
+    Derivable_parent_tokens.write(token_id, parent_tokens_index - 1, [parent_tokens_ptr]);
+    _set_parent_tokens_for(token_id, parent_tokens_index - 1, parent_tokens_ptr + Token.SIZE);
     return ();
 }
 

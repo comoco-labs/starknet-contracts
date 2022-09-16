@@ -15,7 +15,7 @@ namespace IDerivativeLicense {
     func allowTransfer(tokenId: Uint256) -> (allowed: felt) {
     }
 
-    func allowMint(tokenId: Uint256) -> (allowed: felt) {
+    func allowMint(tokenId: Uint256, to: felt) -> (allowed: felt) {
     }
 
     func royalties(tokenId: Uint256) -> (royalties_len: felt, royalties: Royalty*) {
@@ -24,13 +24,37 @@ namespace IDerivativeLicense {
     func collectionSettings(key: felt) -> (value: felt) {
     }
 
+    func collectionArraySettings(key: felt) -> (values_len: felt, values: felt*) {
+    }
+
     func tokenSettings(tokenId: Uint256, key: felt) -> (value: felt) {
+    }
+
+    func tokenArraySettings(tokenId: Uint256, key: felt) -> (values_len: felt, values: felt*) {
+    }
+
+    func authorSettings(tokenId: Uint256, key: felt) -> (value: felt) {
+    }
+
+    func authorArraySettings(tokenId: Uint256, key: felt) -> (values_len: felt, values: felt*) {
     }
 
     func setCollectionSettings(key: felt, value: felt) {
     }
 
+    func setCollectionArraySettings(key: felt, values_len: felt, values: felt*) {
+    }
+
     func setTokenSettings(tokenId: Uint256, key: felt, value: felt) {
+    }
+
+    func setTokenArraySettings(tokenId: Uint256, key: felt, values_len: felt, values: felt*) {
+    }
+
+    func setAuthorSettings(tokenId: Uint256, key: felt, value: felt) {
+    }
+
+    func setAuthorArraySettings(tokenId: Uint256, key: felt, values_len: felt, values: felt*) {
     }
 
 }
