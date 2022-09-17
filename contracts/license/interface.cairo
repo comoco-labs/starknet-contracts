@@ -21,6 +21,9 @@ namespace IDerivativeLicense {
     func royalties(tokenId: Uint256) -> (royalties_len: felt, royalties: Royalty*) {
     }
 
+    func isDragAlong(tokenId: Uint256) -> (res: felt) {
+    }
+
     func collectionSettings(key: felt) -> (value: felt) {
     }
 

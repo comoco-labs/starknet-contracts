@@ -17,11 +17,11 @@ const LICENSE_VERSION = 1;
 
 // 1: allowed; 2: not allowed
 const ALLOW_TRANSFER_KEY = 'allow_transfer';
-const ALLOW_TRANSFER_DEFAULT = 1;
+const ALLOW_TRANSFER_DEFAULT = TRUE;
 
 // 1: drag along; 2: not drag along
 const DRAG_ALONG_KEY = 'drag_along';
-const DRAG_ALONG_DEFAULT = 1;
+const DRAG_ALONG_DEFAULT = FALSE;
 
 // Array of licensee addresses
 const LICENSEES_KEY = 'licensees';
@@ -131,7 +131,27 @@ func royalties{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _author_array_settings(tokenId, ROYALTIES_KEY, author_royalties_len, royalties + collection_royalties_len + token_royalties_len);
 
     let royalties_len = collection_royalties_len + token_royalties_len + author_royalties_len;
-    return (royalties_len=(royalties_len / 2), royalties=cast(royalties, Royalty*));
+    return (royalties_len=(royalties_len / Royalty.SIZE), royalties=cast(royalties, Royalty*));
+}
+
+@view
+func isDragAlong{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256
+) -> (
+        res: felt
+) {
+    with_attr error_message("DerivativeLicense: tokenId is not a valid Uint256") {
+        uint256_check(tokenId);
+    }
+    let (collectionValue) = DerivativeLicense_collection_settings.read(DRAG_ALONG_KEY);
+    let (tokenValue) = DerivativeLicense_token_settings.read(tokenId, DRAG_ALONG_KEY);
+    if ((collectionValue - 1) * (tokenValue - 1) == 0) {
+        return (res=TRUE);
+    }
+    if ((collectionValue - 2) * (tokenValue - 2) == 0) {
+        return (res=FALSE);
+    }
+    return (res=DRAG_ALONG_DEFAULT);
 }
 
 @view
