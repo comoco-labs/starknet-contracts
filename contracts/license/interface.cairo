@@ -12,10 +12,10 @@ namespace IDerivativeLicense {
     func version() -> (version: felt) {
     }
 
-    func allowTransfer(tokenId: Uint256) -> (allowed: felt) {
+    func allowToTransfer(tokenId: Uint256) -> (allowed: felt) {
     }
 
-    func allowMint(tokenId: Uint256, to: felt) -> (allowed: felt) {
+    func allowToMint(tokenId: Uint256, owner: felt, to: felt) -> (allowed: felt) {
     }
 
     func royalties(tokenId: Uint256) -> (royalties_len: felt, royalties: Royalty*) {

@@ -5,7 +5,7 @@
 from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.math import assert_not_zero, assert_not_equal
-from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.uint256 import Uint256, uint256_check
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
 
 from openzeppelin.access.accesscontrol.library import AccessControl
@@ -17,6 +17,7 @@ from contracts.common.royalty import Royalty
 from contracts.common.token import Token
 from contracts.license.interface import IDerivativeLicense
 from contracts.registry.interface import ITokenRegistry
+from contracts.token.interface import IDerivativeToken
 from contracts.token.metadata.authorable import Authorable
 from contracts.token.metadata.derivable import Derivable
 from contracts.token.proxy.license import LicenseProxy
@@ -26,8 +27,8 @@ from contracts.token.proxy.registry import RegistryProxy
 // Constants
 //
 
-const OWNER_ROLE = 'OWNER';
-const ADMIN_ROLE = 'ADMIN';
+const OWNER_ROLE = 'owner';
+const ADMIN_ROLE = 'admin';
 
 //
 // Constructor
@@ -60,6 +61,19 @@ func assert_only_owner_or_admin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
 ) {
     let authorized = _is_owner_or_admin();
     with_attr error_message("DerivativeToken: caller is not owner or admin") {
+        assert authorized = TRUE;
+    }
+    return ();
+}
+
+func assert_only_token_author{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        token_id: Uint256
+) {
+    with_attr error_mesage("DerivativeToken: token_id is not a valid Uint256") {
+        uint256_check(token_id);
+    }
+    let authorized = _is_author_of(token_id);
+    with_attr error_message("DerivativeToken: caller is not token author") {
         assert authorized = TRUE;
     }
     return ();
@@ -191,10 +205,46 @@ func licenseVersion{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 }
 
 @view
+func allowToTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256
+) -> (
+        allowed: felt
+) {
+    let (license) = LicenseProxy.license();
+    let (allowed) = IDerivativeLicense.library_call_allowToTransfer(license, tokenId);
+    return (allowed=allowed);
+}
+
+@view
+func allowTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256
+) -> (
+        allowed: felt
+) {
+    let (parentTokens_len, parentTokens) = Derivable.parent_tokens_of(tokenId);
+    let allowed = _allow_transfer(parentTokens_len, parentTokens);
+    return (allowed=allowed);
+}
+
+@view
+func allowToMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        to: felt
+) -> (
+        allowed: felt
+) {
+    let (license) = LicenseProxy.license();
+    let (owner) = ERC721.owner_of(tokenId);
+    let (allowed) = IDerivativeLicense.library_call_allowToMint(license, tokenId, owner, to);
+    return (allowed=allowed);
+}
+
+@view
 func royalties{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenId: Uint256
 ) -> (
-        royalties_len: felt, royalties: Royalty*
+        royalties_len: felt,
+        royalties: Royalty*
 ) {
     let (license) = LicenseProxy.license();
     let (royalties_len, royalties) = IDerivativeLicense.library_call_royalties(license, tokenId);
@@ -213,14 +263,65 @@ func collectionSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
 }
 
 @view
+func collectionArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        key: felt
+) -> (
+        values_len: felt,
+        values: felt*
+) {
+    let (license) = LicenseProxy.license();
+    let (values_len, values) = IDerivativeLicense.library_call_collectionArraySettings(license, key);
+    return (values_len=values_len, values=values);
+}
+
+@view
 func tokenSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        tokenId: Uint256, key: felt
+        tokenId: Uint256,
+        key: felt
 ) -> (
         value: felt
 ) {
     let (license) = LicenseProxy.license();
     let (value) = IDerivativeLicense.library_call_tokenSettings(license, tokenId, key);
     return (value=value);
+}
+
+@view
+func tokenArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        key: felt
+) -> (
+        values_len: felt,
+        values: felt*
+) {
+    let (license) = LicenseProxy.license();
+    let (values_len, values) = IDerivativeLicense.library_call_tokenArraySettings(license, tokenId, key);
+    return (values_len=values_len, values=values);
+}
+
+@view
+func authorSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        key: felt
+) -> (
+        value: felt
+) {
+    let (license) = LicenseProxy.license();
+    let (value) = IDerivativeLicense.library_call_authorSettings(license, tokenId, key);
+    return (value=value);
+}
+
+@view
+func authorArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        key: felt
+) -> (
+        values_len: felt,
+        values: felt*
+) {
+    let (license) = LicenseProxy.license();
+    let (values_len, values) = IDerivativeLicense.library_call_authorArraySettings(license, tokenId, key);
+    return (values_len=values_len, values=values);
 }
 
 @view
@@ -288,7 +389,7 @@ func transferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
         to: felt,
         tokenId: Uint256
 ) {
-    // TODO: Check DerivativeLicense
+    // TODO: depends on the caller privilege
     ERC721.transfer_from(from_, to, tokenId);
     return ();
 }
@@ -301,7 +402,7 @@ func safeTransferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         data_len: felt,
         data: felt*
 ) {
-    // TODO: Check DerivativeLicense
+    // TODO: depends on the caller privilege
     ERC721.safe_transfer_from(from_, to, tokenId, data_len, data);
     return ();
 }
@@ -311,7 +412,7 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         to: felt,
         tokenId: Uint256
 ) {
-    // TODO: Check DerivativeLicense and TokenRegistry
+    // TODO: check registry for SOT; how to add parent tokens afterwards
     assert_only_owner_or_admin();
     ERC721._mint(to, tokenId);
     return ();
@@ -321,7 +422,7 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 func burn{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenId: Uint256
 ) {
-    // TODO: Check permission
+    // TODO: assert proper permission
     ERC721.assert_only_token_owner(tokenId);
     ERC721._burn(tokenId);
     return ();
@@ -332,6 +433,7 @@ func setTokenURI{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
         tokenId: Uint256,
         tokenURI: felt
 ) {
+    // TODO: assert proper permission
     assert_only_owner_or_admin();
     ERC721._set_token_uri(tokenId, tokenURI);
     return ();
@@ -339,7 +441,8 @@ func setTokenURI{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 
 @external
 func setCollectionSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        key: felt, value: felt
+        key: felt,
+        value: felt
 ) {
     Ownable.assert_only_owner();
     let (license) = LicenseProxy.license();
@@ -348,12 +451,67 @@ func setCollectionSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
 }
 
 @external
+func setCollectionArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        key: felt,
+        values_len: felt,
+        values: felt*
+) {
+    alloc_locals;
+    Ownable.assert_only_owner();
+    let (license) = LicenseProxy.license();
+    IDerivativeLicense.library_call_setCollectionArraySettings(license, key, values_len, values);
+    return ();
+}
+
+@external
 func setTokenSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        tokenId: Uint256, key: felt, value: felt
+        tokenId: Uint256,
+        key: felt,
+        value: felt
 ) {
     ERC721.assert_only_token_owner(tokenId);
     let (license) = LicenseProxy.license();
     IDerivativeLicense.library_call_setTokenSettings(license, tokenId, key, value);
+    return ();
+}
+
+@external
+func setTokenArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        key: felt,
+        values_len: felt,
+        values: felt*
+) {
+    alloc_locals;
+    ERC721.assert_only_token_owner(tokenId);
+    let (license) = LicenseProxy.license();
+    IDerivativeLicense.library_call_setTokenArraySettings(license, tokenId, key, values_len, values);
+    return ();
+}
+
+@external
+func setAuthorSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        key: felt,
+        value: felt
+) {
+    assert_only_token_author(tokenId);
+    let (license) = LicenseProxy.license();
+    IDerivativeLicense.library_call_setAuthorSettings(license, tokenId, key, value);
+    return ();
+}
+
+@external
+func setAuthorArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        key: felt,
+        values_len: felt,
+        values: felt*
+) {
+    alloc_locals;
+    assert_only_token_author(tokenId);
+    let (license) = LicenseProxy.license();
+    IDerivativeLicense.library_call_setAuthorArraySettings(1, tokenId, key, values_len, values);
     return ();
 }
 
@@ -371,7 +529,8 @@ func transferOwnership{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 
 @external
 func setAdmin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        user: felt, granted: felt
+        user: felt,
+        granted: felt
 ) {
     with_attr error_message("DerivativeToken: user is the zero address") {
         assert_not_zero(user);
@@ -416,12 +575,55 @@ func updateRegistry{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 func _is_owner_or_admin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 ) -> felt {
     let (caller) = get_caller_address();
-
     let (owner) = Ownable.owner();
     if (caller == owner) {
         return TRUE;
     }
-
     let (res) = AccessControl.has_role(ADMIN_ROLE, caller);
     return res;
+}
+
+func _is_author_of{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        token_id: Uint256
+) -> felt {
+    let (caller) = get_caller_address();
+    let (author) = Authorable.author_of(token_id);
+    if (caller == author) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
+func _allow_transfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        parent_tokens_index: felt,
+        parent_tokens_ptr: Token*
+) -> felt {
+    if (parent_tokens_index == 0) {
+        return TRUE;
+    }
+    let (allowed) = IDerivativeToken.allowToTransfer(parent_tokens_ptr.collection, parent_tokens_ptr.id);
+    if (allowed == FALSE) {
+        return FALSE;
+    }
+    let (allowed) = IDerivativeToken.allowTransfer(parent_tokens_ptr.collection, parent_tokens_ptr.id);
+    if (allowed == FALSE) {
+        return FALSE;
+    }
+    return _allow_transfer(parent_tokens_index - 1, parent_tokens_ptr + Token.SIZE);
+}
+
+func _allow_mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        to: felt,
+        parent_tokens_index: felt,
+        parent_tokens_ptr: Token*
+) -> felt {
+    if (parent_tokens_index == 0) {
+        return TRUE;
+    }
+    let (allowed) = IDerivativeToken.allowToMint(parent_tokens_ptr.collection, parent_tokens_ptr.id, to);
+    if (allowed == FALSE) {
+        return FALSE;
+    }
+    return _allow_mint(to, parent_tokens_index - 1, parent_tokens_ptr + Token.SIZE);
 }

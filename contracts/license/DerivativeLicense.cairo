@@ -70,7 +70,7 @@ func version{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 }
 
 @view
-func allowTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func allowToTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenId: Uint256
 ) -> (
         allowed: felt
@@ -90,14 +90,18 @@ func allowTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 }
 
 @view
-func allowMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func allowToMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenId: Uint256,
+        owner: felt,
         to : felt
 ) -> (
         allowed: felt
 ) {
     with_attr error_message("DerivativeLicense: tokenId is not a valid Uint256") {
         uint256_check(tokenId);
+    }
+    if (to == owner) {
+        return (allowed=TRUE);
     }
     let (allowed) = inCollectionArraySettings(LICENSEES_KEY, to);
     if (allowed == FALSE) {
