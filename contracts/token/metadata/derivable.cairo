@@ -72,7 +72,7 @@ namespace Derivable {
     // Public
     //
 
-    func set_parent_tokens_for{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    func set_parent_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             token_id: Uint256,
             parent_tokens_len: felt,
             parent_tokens: Token*
@@ -81,12 +81,12 @@ namespace Derivable {
             uint256_check(token_id);
         }
 
-        _set_parent_tokens_for(token_id, parent_tokens_len, parent_tokens);
+        _set_parent_tokens(token_id, parent_tokens_len, parent_tokens);
         Derivable_parent_tokens_len.write(token_id, parent_tokens_len);
         return ();
     }
 
-    func set_child_tokens_for{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    func set_child_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             token_id: Uint256,
             child_tokens_len: felt,
             child_tokens: Token*
@@ -95,7 +95,7 @@ namespace Derivable {
             uint256_check(token_id);
         }
 
-        _set_child_tokens_for(token_id, child_tokens_len, child_tokens);
+        _set_child_tokens(token_id, child_tokens_len, child_tokens);
         Derivable_child_tokens_len.write(token_id, child_tokens_len);
         return ();
     }
@@ -136,7 +136,7 @@ func _child_tokens_of{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     return ();
 }
 
-func _set_parent_tokens_for{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func _set_parent_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         token_id: Uint256,
         parent_tokens_index: felt,
         parent_tokens_ptr: Token*
@@ -146,11 +146,11 @@ func _set_parent_tokens_for{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
     }
 
     Derivable_parent_tokens.write(token_id, parent_tokens_index - 1, [parent_tokens_ptr]);
-    _set_parent_tokens_for(token_id, parent_tokens_index - 1, parent_tokens_ptr + Token.SIZE);
+    _set_parent_tokens(token_id, parent_tokens_index - 1, parent_tokens_ptr + Token.SIZE);
     return ();
 }
 
-func _set_child_tokens_for{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func _set_child_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         token_id: Uint256,
         child_tokens_len: felt,
         child_tokens: Token*
@@ -160,6 +160,6 @@ func _set_child_tokens_for{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
     }
 
     Derivable_child_tokens.write(token_id, child_tokens_len - 1, [child_tokens]);
-    _set_child_tokens_for(token_id, child_tokens_len - 1, child_tokens + Token.SIZE);
+    _set_child_tokens(token_id, child_tokens_len - 1, child_tokens + Token.SIZE);
     return ();
 }

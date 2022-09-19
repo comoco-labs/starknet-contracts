@@ -39,7 +39,7 @@ namespace Authorable {
     // Public
     //
 
-    func set_author_for{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    func set_author{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             token_id: Uint256,
             author: felt
     ) {

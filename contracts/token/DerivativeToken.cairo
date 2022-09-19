@@ -59,7 +59,8 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 
 func assert_only_owner_or_admin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 ) {
-    let authorized = _is_owner_or_admin();
+    let (caller) = get_caller_address();
+    let authorized = _is_owner_or_admin(caller);
     with_attr error_message("DerivativeToken: caller is not owner or admin") {
         assert authorized = TRUE;
     }
@@ -69,10 +70,11 @@ func assert_only_owner_or_admin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
 func assert_only_token_author{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         token_id: Uint256
 ) {
-    with_attr error_mesage("DerivativeToken: token_id is not a valid Uint256") {
+    with_attr error_message("DerivativeToken: token_id is not a valid Uint256") {
         uint256_check(token_id);
     }
-    let authorized = _is_author_of(token_id);
+    let (caller) = get_caller_address();
+    let authorized = _is_author_of(caller, token_id);
     with_attr error_message("DerivativeToken: caller is not token author") {
         assert authorized = TRUE;
     }
@@ -168,6 +170,10 @@ func authorOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 ) -> (
         author: felt
 ) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (author) = Authorable.author_of(tokenId);
     return (author=author);
 }
@@ -179,19 +185,12 @@ func parentTokensOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
         parentTokens_len: felt,
         parentTokens: Token*
 ) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (parentTokens_len, parentTokens) = Derivable.parent_tokens_of(tokenId);
     return (parentTokens_len=parentTokens_len, parentTokens=parentTokens);
-}
-
-@view
-func childTokensOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        tokenId: Uint256
-) -> (
-        childTokens_len: felt,
-        childTokens: Token*
-) {
-    let (childTokens_len, childTokens) = Derivable.child_tokens_of(tokenId);
-    return (childTokens_len=childTokens_len, childTokens=childTokens);
 }
 
 @view
@@ -210,6 +209,10 @@ func allowToTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
 ) -> (
         allowed: felt
 ) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (license) = LicenseProxy.license();
     let (allowed) = IDerivativeLicense.library_call_allowToTransfer(license, tokenId);
     return (allowed=allowed);
@@ -221,6 +224,10 @@ func allowTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 ) -> (
         allowed: felt
 ) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (parentTokens_len, parentTokens) = Derivable.parent_tokens_of(tokenId);
     let allowed = _allow_transfer(parentTokens_len, parentTokens);
     return (allowed=allowed);
@@ -233,6 +240,10 @@ func allowToMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 ) -> (
         allowed: felt
 ) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (license) = LicenseProxy.license();
     let (owner) = ERC721.owner_of(tokenId);
     let (allowed) = IDerivativeLicense.library_call_allowToMint(license, tokenId, owner, to);
@@ -246,6 +257,10 @@ func royalties{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         royalties_len: felt,
         royalties: Royalty*
 ) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (license) = LicenseProxy.license();
     let (royalties_len, royalties) = IDerivativeLicense.library_call_royalties(license, tokenId);
     return (royalties_len=royalties_len, royalties=royalties);
@@ -257,6 +272,10 @@ func isDragAlong{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 ) -> (
         res: felt
 ) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (license) = LicenseProxy.license();
     let (res) = IDerivativeLicense.library_call_isDragAlong(license, tokenId);
     return (res=res);
@@ -292,6 +311,10 @@ func tokenSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 ) -> (
         value: felt
 ) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (license) = LicenseProxy.license();
     let (value) = IDerivativeLicense.library_call_tokenSettings(license, tokenId, key);
     return (value=value);
@@ -305,6 +328,10 @@ func tokenArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
         values_len: felt,
         values: felt*
 ) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (license) = LicenseProxy.license();
     let (values_len, values) = IDerivativeLicense.library_call_tokenArraySettings(license, tokenId, key);
     return (values_len=values_len, values=values);
@@ -317,6 +344,10 @@ func authorSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 ) -> (
         value: felt
 ) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (license) = LicenseProxy.license();
     let (value) = IDerivativeLicense.library_call_authorSettings(license, tokenId, key);
     return (value=value);
@@ -330,6 +361,10 @@ func authorArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
         values_len: felt,
         values: felt*
 ) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (license) = LicenseProxy.license();
     let (values_len, values) = IDerivativeLicense.library_call_authorArraySettings(license, tokenId, key);
     return (values_len=values_len, values=values);
@@ -400,7 +435,19 @@ func transferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
         to: felt,
         tokenId: Uint256
 ) {
-    // TODO: depends on the caller privilege
+    alloc_locals;
+    let (caller) = get_caller_address();
+    let authorized = _is_owner_or_admin(caller);
+    if (authorized == FALSE) {
+        let authorized = ERC721._is_approved_or_owner(caller, tokenId);
+        with_attr error_message("DerivativeToken: caller is not authorized to transfer") {
+            assert authorized = TRUE;
+        }
+        let (authorized) = allowTransfer(tokenId);
+        with_attr error_message("DerivativeToken: token is not licensed to transfer") {
+            assert authorized = TRUE;
+        }
+    }
     ERC721.transfer_from(from_, to, tokenId);
     return ();
 }
@@ -413,7 +460,19 @@ func safeTransferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         data_len: felt,
         data: felt*
 ) {
-    // TODO: depends on the caller privilege
+    alloc_locals;
+    let (caller) = get_caller_address();
+    let authorized = _is_owner_or_admin(caller);
+    if (authorized == FALSE) {
+        let authorized = ERC721._is_approved_or_owner(caller, tokenId);
+        with_attr error_message("DerivativeToken: caller is not authorized to transfer") {
+            assert authorized = TRUE;
+        }
+        let (authorized) = allowTransfer(tokenId);
+        with_attr error_message("DerivativeToken: token is not licensed to transfer") {
+            assert authorized = TRUE;
+        }
+    }
     ERC721.safe_transfer_from(from_, to, tokenId, data_len, data);
     return ();
 }
@@ -421,11 +480,27 @@ func safeTransferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
 @external
 func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         to: felt,
-        tokenId: Uint256
+        tokenId: Uint256,
+        parentTokens_len: felt,
+        parentTokens: Token*
 ) {
-    // TODO: check registry for SOT; how to add parent tokens afterwards
     assert_only_owner_or_admin();
+    let (registry) = RegistryProxy.registry();
+    let (contract) = get_contract_address();
+    let (_, sot) = ITokenRegistry.getMappingInfoForL2Address(registry, contract);
+    if (sot == 1) {
+        with_attr error_message("DerivativeToken: cannot set parent tokens when minting L1 sourced token") {
+            assert parentTokens_len = 0;
+        }
+    }
+    let allowed = _allow_mint(to, parentTokens_len, parentTokens);
+    with_attr error_message("DerivativeToken: not licensed by parent tokens") {
+        assert allowed = TRUE;
+    }
+
     ERC721._mint(to, tokenId);
+    Authorable.set_author(tokenId, to);
+    Derivable.set_parent_tokens(tokenId, parentTokens_len, parentTokens);
     return ();
 }
 
@@ -433,8 +508,8 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 func burn{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenId: Uint256
 ) {
-    // TODO: assert proper permission
-    ERC721.assert_only_token_owner(tokenId);
+    // CAUTION: only meant for fixing mint errors; may leave dangling metadata resulting in conflicts when re-minted
+    assert_only_owner_or_admin();
     ERC721._burn(tokenId);
     return ();
 }
@@ -444,9 +519,24 @@ func setTokenURI{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
         tokenId: Uint256,
         tokenURI: felt
 ) {
-    // TODO: assert proper permission
     assert_only_owner_or_admin();
     ERC721._set_token_uri(tokenId, tokenURI);
+    return ();
+}
+
+@external
+func setParentTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        parentTokens_len: felt,
+        parentTokens: Token*
+) {
+    assert_only_owner_or_admin();
+    let (owner) = ERC721.owner_of(tokenId);
+    let allowed = _allow_mint(owner, parentTokens_len, parentTokens);
+    with_attr error_message("DerivativeToken: not licensed by parent tokens") {
+        assert allowed = TRUE;
+    }
+    Derivable.set_parent_tokens(tokenId, parentTokens_len, parentTokens);
     return ();
 }
 
@@ -481,6 +571,10 @@ func setTokenSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         value: felt
 ) {
     ERC721.assert_only_token_owner(tokenId);
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: set for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (license) = LicenseProxy.license();
     IDerivativeLicense.library_call_setTokenSettings(license, tokenId, key, value);
     return ();
@@ -495,6 +589,10 @@ func setTokenArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
 ) {
     alloc_locals;
     ERC721.assert_only_token_owner(tokenId);
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: set for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (license) = LicenseProxy.license();
     IDerivativeLicense.library_call_setTokenArraySettings(license, tokenId, key, values_len, values);
     return ();
@@ -507,6 +605,10 @@ func setAuthorSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
         value: felt
 ) {
     assert_only_token_author(tokenId);
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: set for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (license) = LicenseProxy.license();
     IDerivativeLicense.library_call_setAuthorSettings(license, tokenId, key, value);
     return ();
@@ -521,6 +623,10 @@ func setAuthorArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
 ) {
     alloc_locals;
     assert_only_token_author(tokenId);
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: set for nonexistent token") {
+        assert exists = TRUE;
+    }
     let (license) = LicenseProxy.license();
     IDerivativeLicense.library_call_setAuthorArraySettings(1, tokenId, key, values_len, values);
     return ();
@@ -584,22 +690,22 @@ func updateRegistry{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 //
 
 func _is_owner_or_admin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        user: felt
 ) -> felt {
-    let (caller) = get_caller_address();
     let (owner) = Ownable.owner();
-    if (caller == owner) {
+    if (user == owner) {
         return TRUE;
     }
-    let (res) = AccessControl.has_role(ADMIN_ROLE, caller);
+    let (res) = AccessControl.has_role(ADMIN_ROLE, user);
     return res;
 }
 
 func _is_author_of{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        user: felt,
         token_id: Uint256
 ) -> felt {
-    let (caller) = get_caller_address();
     let (author) = Authorable.author_of(token_id);
-    if (caller == author) {
+    if (user == author) {
         return TRUE;
     } else {
         return FALSE;
