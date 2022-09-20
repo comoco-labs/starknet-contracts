@@ -628,7 +628,7 @@ func setAuthorArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
         assert exists = TRUE;
     }
     let (license) = LicenseProxy.license();
-    IDerivativeLicense.library_call_setAuthorArraySettings(1, tokenId, key, values_len, values);
+    IDerivativeLicense.library_call_setAuthorArraySettings(license, tokenId, key, values_len, values);
     return ();
 }
 
