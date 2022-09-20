@@ -24,7 +24,7 @@ DERIVATIVE_TOKEN_OWNER_ADDRESS = 0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
 
 
 @pytest.mark.asyncio
-async def test_license():
+async def test_contracts():
     starknet = await Starknet.empty()
 
     registry_contract = await starknet.deploy(
@@ -47,6 +47,16 @@ async def test_license():
         ]
     )
 
+    # Set Registry
+
+    await registry_contract.setMappingInfoForAddresses(0xDEADBEEF, token_contract.contract_address, 1).execute(caller_address=REGISTRY_OWNER_ADDRESS)
+    execution_info = await registry_contract.getMappingInfoForL1Address(0xBADC0FFEE).call()
+    assert execution_info.result == (0, 0)
+    execution_info = await registry_contract.getMappingInfoForAddresses(0xDEADBEEF, token_contract.contract_address).call()
+    assert execution_info.result == (1,)
+
+    # Access Control
+
     execution_info = await token_contract.owner().call()
     assert execution_info.result == (COLLECTION_OWNER_ADDRESS,)
     execution_info = await token_contract.isAdmin(COLLECTION_ADMIN_ADDRESS).call()
@@ -56,14 +66,20 @@ async def test_license():
     execution_info = await token_contract.isAdmin(COLLECTION_ADMIN_ADDRESS).call()
     assert execution_info.result == (1,)
 
-    execution_info = await token_contract.licenseVersion().call()
-    assert execution_info.result == (1,)
+    # Mint Original
 
     await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, []).execute(caller_address=COLLECTION_OWNER_ADDRESS)
     execution_info = await token_contract.authorOf(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == (ORIGINAL_TOKEN_OWNER_ADDRESS,)
     execution_info = await token_contract.parentTokensOf(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == ([],)
+
+    # License: version
+
+    execution_info = await token_contract.licenseVersion().call()
+    assert execution_info.result == (1,)
+
+    # License: royalties
 
     await token_contract.setCollectionArraySettings(str_to_felt('royalties'), [123, 5, 456, 10]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
     execution_info = await token_contract.collectionArraySettings(str_to_felt('royalties')).call()
@@ -76,6 +92,8 @@ async def test_license():
     execution_info = await token_contract.royalties(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == ([(123, 5), (456, 10), (789, 15)],)
 
+    # License: licensees
+
     execution_info = await token_contract.allowToMint(ORIGINAL_TOKEN_ID, ORIGINAL_TOKEN_OWNER_ADDRESS).call()
     assert execution_info.result == (1,)
     execution_info = await token_contract.allowToMint(ORIGINAL_TOKEN_ID, DERIVATIVE_TOKEN_OWNER_ADDRESS).call()
@@ -85,11 +103,21 @@ async def test_license():
     execution_info = await token_contract.allowToMint(ORIGINAL_TOKEN_ID, DERIVATIVE_TOKEN_OWNER_ADDRESS).call()
     assert execution_info.result == (1,)
 
+    # Clear Registry
+
+    await registry_contract.clearMappingInfoForAddresses(0xDEADBEEF, token_contract.contract_address).execute(caller_address=REGISTRY_OWNER_ADDRESS)
+    execution_info = await registry_contract.getMappingInfoForL2Address(token_contract.contract_address).call()
+    assert execution_info.result == (0, 0)
+
+    # Mint Derivative
+
     await token_contract.mint(DERIVATIVE_TOKEN_OWNER_ADDRESS, DERIVATIVE_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
     execution_info = await token_contract.authorOf(DERIVATIVE_TOKEN_ID).call()
     assert execution_info.result == (DERIVATIVE_TOKEN_OWNER_ADDRESS,)
     execution_info = await token_contract.parentTokensOf(DERIVATIVE_TOKEN_ID).call()
     assert execution_info.result == ([(token_contract.contract_address, ORIGINAL_TOKEN_ID)],)
+
+    # License: allow_transfer
 
     execution_info = await token_contract.allowToTransfer(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == (1,)
