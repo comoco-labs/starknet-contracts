@@ -54,9 +54,6 @@ namespace IDerivativeToken {
 //  func mint(to: felt, tokenId: Uint256, parentTokens_len: felt, parentTokens: Token*) {
 //  }
 
-//  func burn(tokenId: Uint256) {
-//  }
-
 //  func setTokenURI(tokenId: Uint256, tokenURI: felt) {
 //  }
 
@@ -68,9 +65,6 @@ namespace IDerivativeToken {
 //  }
 
 //  func parentTokensOf(tokenId: Uint256) -> (parentTokens_len: felt, parentTokens: Token*) {
-//  }
-
-//  func setParentTokens(tokenId: Uint256, parentTokens_len: felt, parentTokens: Token*) {
 //  }
 
 //

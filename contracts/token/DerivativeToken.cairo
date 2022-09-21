@@ -505,38 +505,12 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 }
 
 @external
-func burn{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        tokenId: Uint256
-) {
-    // CAUTION: only meant for fixing mint errors; may leave dangling metadata resulting in conflicts when re-minted
-    assert_only_owner_or_admin();
-    ERC721._burn(tokenId);
-    return ();
-}
-
-@external
 func setTokenURI{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenId: Uint256,
         tokenURI: felt
 ) {
     assert_only_owner_or_admin();
     ERC721._set_token_uri(tokenId, tokenURI);
-    return ();
-}
-
-@external
-func setParentTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        tokenId: Uint256,
-        parentTokens_len: felt,
-        parentTokens: Token*
-) {
-    assert_only_owner_or_admin();
-    let (owner) = ERC721.owner_of(tokenId);
-    let allowed = _allow_mint(owner, parentTokens_len, parentTokens);
-    with_attr error_message("DerivativeToken: not licensed by parent tokens") {
-        assert allowed = TRUE;
-    }
-    Derivable.set_parent_tokens(tokenId, parentTokens_len, parentTokens);
     return ();
 }
 
@@ -682,6 +656,35 @@ func updateRegistry{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 ) {
     assert_only_owner_or_admin();
     RegistryProxy._update_registry(newRegistry);
+    return ();
+}
+
+//
+// Internals
+//
+
+// CAUTION: meant only for fixing accidental errors, but may be abused or cause inconsistency
+func burn{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256
+) {
+    assert_only_owner_or_admin();
+    ERC721._burn(tokenId);
+    return ();
+}
+
+// CAUTION: meant only for fixing accidental errors, but may be abused or cause inconsistency
+func setParentTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        parentTokens_len: felt,
+        parentTokens: Token*
+) {
+    assert_only_owner_or_admin();
+    let (owner) = ERC721.owner_of(tokenId);
+    let allowed = _allow_mint(owner, parentTokens_len, parentTokens);
+    with_attr error_message("DerivativeToken: not licensed by parent tokens") {
+        assert allowed = TRUE;
+    }
+    Derivable.set_parent_tokens(tokenId, parentTokens_len, parentTokens);
     return ();
 }
 

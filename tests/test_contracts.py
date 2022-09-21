@@ -68,7 +68,7 @@ async def test_contracts():
 
     # Mint Original
 
-    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, []).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, []).execute(caller_address=COLLECTION_ADMIN_ADDRESS)
     execution_info = await token_contract.authorOf(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == (ORIGINAL_TOKEN_OWNER_ADDRESS,)
     execution_info = await token_contract.parentTokensOf(ORIGINAL_TOKEN_ID).call()
@@ -111,7 +111,7 @@ async def test_contracts():
 
     # Mint Derivative
 
-    await token_contract.mint(DERIVATIVE_TOKEN_OWNER_ADDRESS, DERIVATIVE_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    await token_contract.mint(DERIVATIVE_TOKEN_OWNER_ADDRESS, DERIVATIVE_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_ADMIN_ADDRESS)
     execution_info = await token_contract.authorOf(DERIVATIVE_TOKEN_ID).call()
     assert execution_info.result == (DERIVATIVE_TOKEN_OWNER_ADDRESS,)
     execution_info = await token_contract.parentTokensOf(DERIVATIVE_TOKEN_ID).call()

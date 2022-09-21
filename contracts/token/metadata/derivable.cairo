@@ -9,6 +9,24 @@ from starkware.cairo.common.uint256 import Uint256, uint256_check
 from contracts.common.token import Token
 
 //
+// Events
+//
+
+@event
+func ParentTokensChanged(
+        tokenId: Uint256,
+        previousParentTokens_len: felt, previousParentTokens: Token*,
+        newParentTokens_len: felt, newParentTokens: Token*) {
+}
+
+@event
+func ChildTokensChanged(
+        tokenId: Uint256,
+        previousChildTokens_len: felt, previousChildTokens: Token*,
+        newChildTokens_len: felt, newChildTokens: Token*) {
+}
+
+//
 // Storage
 //
 
@@ -74,29 +92,43 @@ namespace Derivable {
 
     func set_parent_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             token_id: Uint256,
-            parent_tokens_len: felt,
-            parent_tokens: Token*
+            new_parent_tokens_len: felt,
+            new_parent_tokens: Token*
     ) {
+        alloc_locals;
         with_attr error_message("Derivable: token_id is not a valid Uint256") {
             uint256_check(token_id);
         }
 
-        _set_parent_tokens(token_id, parent_tokens_len, parent_tokens);
-        Derivable_parent_tokens_len.write(token_id, parent_tokens_len);
+        let (previous_parent_tokens_len, previous_parent_tokens) = parent_tokens_of(token_id);
+        _set_parent_tokens(token_id, new_parent_tokens_len, new_parent_tokens);
+        Derivable_parent_tokens_len.write(token_id, new_parent_tokens_len);
+        ParentTokensChanged.emit(
+                token_id,
+                previous_parent_tokens_len, previous_parent_tokens,
+                new_parent_tokens_len, new_parent_tokens
+        );
         return ();
     }
 
     func set_child_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             token_id: Uint256,
-            child_tokens_len: felt,
-            child_tokens: Token*
+            new_child_tokens_len: felt,
+            new_child_tokens: Token*
     ) {
-         with_attr error_message("Derivable: token_id is not a valid Uint256") {
+        alloc_locals;
+        with_attr error_message("Derivable: token_id is not a valid Uint256") {
             uint256_check(token_id);
         }
 
-        _set_child_tokens(token_id, child_tokens_len, child_tokens);
-        Derivable_child_tokens_len.write(token_id, child_tokens_len);
+        let (previous_child_tokens_len, previous_child_tokens) = child_tokens_of(token_id);
+        _set_child_tokens(token_id, new_child_tokens_len, new_child_tokens);
+        Derivable_child_tokens_len.write(token_id, new_child_tokens_len);
+        ChildTokensChanged.emit(
+                token_id,
+                previous_child_tokens_len, previous_child_tokens,
+                new_child_tokens_len, new_child_tokens
+        );
         return ();
     }
 
