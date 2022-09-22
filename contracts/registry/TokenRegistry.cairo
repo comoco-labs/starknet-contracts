@@ -13,9 +13,21 @@ from openzeppelin.upgrades.library import Proxy
 
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        implementation: felt
+        implementation: felt,
+        selector: felt,
+        calldata_len: felt,
+        calldata: felt*
 ) {
+    alloc_locals;
     Proxy._set_implementation_hash(implementation);
+    if (selector != 0) {
+        library_call(
+                class_hash=implementation,
+                function_selector=selector,
+                calldata_size=calldata_len,
+                calldata=calldata
+        );
+    }
     return ();
 }
 

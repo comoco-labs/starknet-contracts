@@ -31,36 +31,22 @@ DERIVATIVE_TOKEN_OWNER_ADDRESS = 0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
 async def test_contracts():
     starknet = await Starknet.empty()
 
-    registry_class = await starknet.declare(
-        source=REGISTRY_IMPL_FILE
-    )
-
-    token_class = await starknet.declare(
-        source=TOKEN_IMPL_FILE
-    )
-
-    license_class = await starknet.declare(
-        source=LICENSE_IMPL_FILE
-    )
+    registry_class = await starknet.declare(REGISTRY_IMPL_FILE)
+    token_class = await starknet.declare(TOKEN_IMPL_FILE)
+    license_class = await starknet.declare(LICENSE_IMPL_FILE)
 
     # TODO: testing Starknet doesn't support default entry point yet
     registry_contract = await starknet.deploy(
-        # source=REGISTRY_CONTRACT_FILE,
-        source=REGISTRY_IMPL_FILE,
-        # constructor_calldata=[registry_class.class_hash]
-        constructor_calldata=[]
+            source=REGISTRY_IMPL_FILE,
+            constructor_calldata=[]
     )
-
     await registry_contract.initializer(PROXY_ADMIN_ADDRESS, REGISTRY_OWNER_ADDRESS).execute()
 
     # TODO: testing Starknet doesn't support default entry point yet
     token_contract = await starknet.deploy(
-        # source=TOKEN_CONTRACT_FILE,
-        source=TOKEN_IMPL_FILE,
-        # constructor_calldata=[token_class.class_hash]
-        constructor_calldata=[]
+            source=TOKEN_IMPL_FILE,
+            constructor_calldata=[]
     )
-
     await token_contract.initializer(
             PROXY_ADMIN_ADDRESS,
             NAME,
