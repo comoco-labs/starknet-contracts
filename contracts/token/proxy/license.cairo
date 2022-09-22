@@ -10,7 +10,7 @@ from starkware.cairo.common.math import assert_not_zero
 //
 
 @event
-func LicenseChanged(previousLicense: felt, newLicense: felt) {
+func LicenseUpgraded(previousLicense: felt, newLicense: felt) {
 }
 
 //
@@ -30,7 +30,7 @@ namespace LicenseProxy {
     func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         license: felt
     ) {
-        _update_license(license);
+        _set_license(license);
         return ();
     }
 
@@ -50,7 +50,7 @@ namespace LicenseProxy {
     // Internals
     //
 
-    func _update_license{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    func _set_license{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             new_license: felt
     ) {
         with_attr error_message("LicenseProxy: new_license is the zero address") {
@@ -58,7 +58,7 @@ namespace LicenseProxy {
         }
         let (previous_license) = LicenseProxy_license.read();
         LicenseProxy_license.write(new_license);
-        LicenseChanged.emit(previous_license, new_license);
+        LicenseUpgraded.emit(previous_license, new_license);
         return ();
     }
 

@@ -6,6 +6,13 @@
 namespace ITokenRegistry {
 
 //
+//  Initializer
+//
+
+//  func initializer(proxyAdmin: felt, owner: felt) {
+//  }
+
+//
 //  Registry
 //
 
@@ -32,6 +39,25 @@ namespace ITokenRegistry {
 //  }
 
 //  func transferOwnership(newOwner: felt) {
+//  }
+
+//
+//  Upgrade
+//
+
+//  func version() -> (version: felt) {
+//  {
+
+//  func getImplementationHash() -> (implementation: felt) {
+//  }
+
+//  func upgrade(newImplementation: felt) {
+//  }
+
+//  func getProxyAdmin() -> (admin: felt) {
+//  }
+
+//  func setProxyAdmin(newAdmin: felt) {
 //  }
 
 }

@@ -8,6 +8,13 @@ from starkware.cairo.common.uint256 import Uint256
 namespace IDerivativeToken {
 
 //
+//  Initializer
+//
+
+//  func initializer(proxyAdmin: felt, name: felt, symbol: felt, owner: felt, license: felt, registry: felt) {
+//  }
+
+//
 //  ERC165
 //
 
@@ -142,19 +149,34 @@ namespace IDerivativeToken {
 //  }
 
 //
-//  Proxy
+//  Upgrade
 //
+
+//  func version() -> (version: felt) {
+//  {
+
+//  func getImplementationHash() -> (implementation: felt) {
+//  }
+
+//  func upgrade(newImplementation: felt) {
+//  }
 
 //  func license() -> (license: felt) {
 //  }
 
-//  func updateLicense(newLicense: felt) {
+//  func upgradeLicense(newLicense: felt) {
 //  }
 
 //  func registry() -> (registry: felt) {
 //  }
 
-//  func updateRegistry(newRegistry: felt) {
+//  func upgradeRegistry(newRegistry: felt) {
+//  }
+
+//  func getProxyAdmin() -> (admin: felt) {
+//  }
+
+//  func setProxyAdmin(newAdmin: felt) {
 //  }
 
 }

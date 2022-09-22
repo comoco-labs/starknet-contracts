@@ -13,7 +13,7 @@ from contracts.common.royalty import Royalty
 // Constants
 //
 
-const LICENSE_VERSION = 1;
+const VERSION = 1;
 
 // 1: allowed; 2: not allowed
 const ALLOW_TRANSFER_KEY = 'allow_transfer';
@@ -66,7 +66,7 @@ func version{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 ) -> (
         version: felt
 ) {
-    return (version=LICENSE_VERSION);
+    return (version=VERSION);
 }
 
 @view

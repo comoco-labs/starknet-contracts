@@ -10,7 +10,7 @@ from starkware.cairo.common.math import assert_not_zero
 //
 
 @event
-func RegistryChanged(previousRegistry: felt, newRegistry: felt) {
+func RegistryUpgraded(previousRegistry: felt, newRegistry: felt) {
 }
 
 //
@@ -30,7 +30,7 @@ namespace RegistryProxy {
     func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         registry: felt
     ) {
-        _update_registry(registry);
+        _set_registry(registry);
         return ();
     }
 
@@ -50,7 +50,7 @@ namespace RegistryProxy {
     // Internals
     //
 
-    func _update_registry{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    func _set_registry{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             new_registry: felt
     ) {
         with_attr error_message("RegistryProxy: new_registry is the zero address") {
@@ -58,7 +58,7 @@ namespace RegistryProxy {
         }
         let (previous_registry) = RegistryProxy_registry.read();
         RegistryProxy_registry.write(new_registry);
-        RegistryChanged.emit(previous_registry, new_registry);
+        RegistryUpgraded.emit(previous_registry, new_registry);
         return ();
     }
 

@@ -6,13 +6,17 @@ from starkware.starknet.testing.starknet import Starknet
 from utils import (str_to_felt, to_uint)
 
 
-REGISTRY_OWNER_ADDRESS = 0x1111111111111111111111111111111111111111
-COLLECTION_OWNER_ADDRESS = 0x2222222222222222222222222222222222222222
-COLLECTION_ADMIN_ADDRESS = 0x3333333333333333333333333333333333333333
+PROXY_ADMIN_ADDRESS = 0x1111111111111111111111111111111111111111
+REGISTRY_OWNER_ADDRESS = 0x2222222222222222222222222222222222222222
+COLLECTION_OWNER_ADDRESS = 0x3333333333333333333333333333333333333333
+COLLECTION_ADMIN_ADDRESS = 0x4444444444444444444444444444444444444444
 
 REGISTRY_CONTRACT_FILE = os.path.join('contracts', 'registry', 'TokenRegistry.cairo')
-LICENSE_CONTRACT_FILE = os.path.join('contracts', 'license', 'DerivativeLicense.cairo')
 TOKEN_CONTRACT_FILE = os.path.join('contracts', 'token', 'DerivativeToken.cairo')
+
+REGISTRY_IMPL_FILE = os.path.join('contracts', 'registry', 'TokenRegistryImpl.cairo')
+TOKEN_IMPL_FILE = os.path.join('contracts', 'token', 'DerivativeTokenImpl.cairo')
+LICENSE_IMPL_FILE = os.path.join('contracts', 'license', 'DerivativeLicense.cairo')
 
 NAME = str_to_felt('name')
 SYMBOL = str_to_felt('symbol')
@@ -27,25 +31,44 @@ DERIVATIVE_TOKEN_OWNER_ADDRESS = 0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
 async def test_contracts():
     starknet = await Starknet.empty()
 
-    registry_contract = await starknet.deploy(
-        source=REGISTRY_CONTRACT_FILE,
-        constructor_calldata=[REGISTRY_OWNER_ADDRESS]
+    registry_class = await starknet.declare(
+        source=REGISTRY_IMPL_FILE
+    )
+
+    token_class = await starknet.declare(
+        source=TOKEN_IMPL_FILE
     )
 
     license_class = await starknet.declare(
-        source=LICENSE_CONTRACT_FILE
+        source=LICENSE_IMPL_FILE
     )
 
+    # TODO: testing Starknet doesn't support default entry point yet
+    registry_contract = await starknet.deploy(
+        # source=REGISTRY_CONTRACT_FILE,
+        source=REGISTRY_IMPL_FILE,
+        # constructor_calldata=[registry_class.class_hash]
+        constructor_calldata=[]
+    )
+
+    await registry_contract.initializer(PROXY_ADMIN_ADDRESS, REGISTRY_OWNER_ADDRESS).execute()
+
+    # TODO: testing Starknet doesn't support default entry point yet
     token_contract = await starknet.deploy(
-        source=TOKEN_CONTRACT_FILE,
-        constructor_calldata=[
+        # source=TOKEN_CONTRACT_FILE,
+        source=TOKEN_IMPL_FILE,
+        # constructor_calldata=[token_class.class_hash]
+        constructor_calldata=[]
+    )
+
+    await token_contract.initializer(
+            PROXY_ADMIN_ADDRESS,
             NAME,
             SYMBOL,
             COLLECTION_OWNER_ADDRESS,
             license_class.class_hash,
             registry_contract.contract_address
-        ]
-    )
+    ).execute()
 
     # Set Registry
 
