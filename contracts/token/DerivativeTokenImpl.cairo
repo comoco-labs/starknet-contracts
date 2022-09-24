@@ -546,6 +546,16 @@ func setTokenURI{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 }
 
 @external
+func setAuthor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        author: felt
+) {
+    assert_only_token_author(tokenId);
+    Authorable.set_author(tokenId, author);
+    return ();
+}
+
+@external
 func setCollectionSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         key: felt,
         value: felt

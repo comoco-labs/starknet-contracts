@@ -71,6 +71,9 @@ namespace IDerivativeToken {
 //  func authorOf(tokenId: Uint256) -> (author: felt) {
 //  }
 
+//  func setAuthor(tokenId: Uint256, author: felt) {
+//  }
+
 //  func parentTokensOf(tokenId: Uint256) -> (parentTokens_len: felt, parentTokens: Token*) {
 //  }
 
