@@ -1,9 +1,13 @@
 import os
 import pytest
 
+from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starknet.testing.starknet import Starknet
+from starkware.starknet.testing.starknet import StarknetContract
 
-from utils import (str_to_felt, to_uint)
+from utils import assert_revert
+from utils import str_to_felt
+from utils import to_uint
 
 
 PROXY_ADMIN_ADDRESS = 0x1111111111111111111111111111111111111111
@@ -11,13 +15,14 @@ REGISTRY_OWNER_ADDRESS = 0x2222222222222222222222222222222222222222
 COLLECTION_OWNER_ADDRESS = 0x3333333333333333333333333333333333333333
 COLLECTION_ADMIN_ADDRESS = 0x4444444444444444444444444444444444444444
 
-REGISTRY_CONTRACT_FILE = os.path.join('contracts', 'registry', 'TokenRegistry.cairo')
-TOKEN_CONTRACT_FILE = os.path.join('contracts', 'token', 'DerivativeToken.cairo')
-
 REGISTRY_IMPL_FILE = os.path.join('contracts', 'registry', 'TokenRegistryImpl.cairo')
 TOKEN_IMPL_FILE = os.path.join('contracts', 'token', 'DerivativeTokenImpl.cairo')
 LICENSE_IMPL_FILE = os.path.join('contracts', 'license', 'DerivativeLicense.cairo')
 
+REGISTRY_CONTRACT_FILE = os.path.join('contracts', 'registry', 'TokenRegistry.cairo')
+TOKEN_CONTRACT_FILE = os.path.join('contracts', 'token', 'DerivativeToken.cairo')
+
+INITIALIZER_SELECTOR = get_selector_from_name('initializer')
 NAME = str_to_felt('name')
 SYMBOL = str_to_felt('symbol')
 
@@ -27,47 +32,96 @@ DERIVATIVE_TOKEN_ID = to_uint(11)
 DERIVATIVE_TOKEN_OWNER_ADDRESS = 0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
 
 
-@pytest.mark.asyncio
-async def test_contracts():
+@pytest.fixture(scope='module')
+async def contracts_init():
     starknet = await Starknet.empty()
 
     registry_class = await starknet.declare(REGISTRY_IMPL_FILE)
     token_class = await starknet.declare(TOKEN_IMPL_FILE)
     license_class = await starknet.declare(LICENSE_IMPL_FILE)
 
-    # TODO: testing Starknet doesn't support default entry point yet
     registry_contract = await starknet.deploy(
-            source=REGISTRY_IMPL_FILE,
-            constructor_calldata=[]
+            source=REGISTRY_CONTRACT_FILE,
+            constructor_calldata=[
+                registry_class.class_hash,
+                INITIALIZER_SELECTOR,
+                2,
+                PROXY_ADMIN_ADDRESS,
+                REGISTRY_OWNER_ADDRESS
+            ]
     )
-    await registry_contract.initializer(PROXY_ADMIN_ADDRESS, REGISTRY_OWNER_ADDRESS).execute()
+    registry_contract = registry_contract.replace_abi(registry_class.abi)
 
-    # TODO: testing Starknet doesn't support default entry point yet
     token_contract = await starknet.deploy(
-            source=TOKEN_IMPL_FILE,
-            constructor_calldata=[]
+            source=TOKEN_CONTRACT_FILE,
+            constructor_calldata=[
+                token_class.class_hash,
+                INITIALIZER_SELECTOR,
+                6,
+                PROXY_ADMIN_ADDRESS,
+                NAME,
+                SYMBOL,
+                COLLECTION_OWNER_ADDRESS,
+                license_class.class_hash,
+                registry_contract.contract_address
+            ]
     )
-    await token_contract.initializer(
-            PROXY_ADMIN_ADDRESS,
-            NAME,
-            SYMBOL,
-            COLLECTION_OWNER_ADDRESS,
-            license_class.class_hash,
-            registry_contract.contract_address
-    ).execute()
+    token_contract = token_contract.replace_abi(token_class.abi)
 
-    # Set Registry
+    return starknet.state, registry_contract, token_contract
 
-    await registry_contract.setMappingInfoForAddresses(0xDEADBEEF, token_contract.contract_address, 1).execute(caller_address=REGISTRY_OWNER_ADDRESS)
-    execution_info = await registry_contract.getMappingInfoForL1Address(0xBADC0FFEE).call()
+
+@pytest.fixture
+def contracts_factory(contracts_init):
+    state, registry_contract, token_contract = contracts_init
+
+    _state = state.copy()
+    registry_contract = StarknetContract(
+            _state,
+            registry_contract.abi,
+            registry_contract.contract_address,
+            registry_contract.deploy_call_info
+    )
+    token_contract = StarknetContract(
+            _state,
+            token_contract.abi,
+            token_contract.contract_address,
+            token_contract.deploy_call_info
+    )
+
+    return registry_contract, token_contract
+
+
+@pytest.mark.asyncio
+async def test_TokenRegistry(contracts_factory):
+    registry_contract, _ = contracts_factory
+
+    execution_info = await registry_contract.getMappingInfoForAddresses(0xDEADBEEF, 0xBADC0FFEE).call()
+    assert execution_info.result == (0,)
+
+    await assert_revert(
+            registry_contract.setMappingInfoForAddresses(0xDEADBEEF, 0xBADC0FFEE, 1).execute())
+    await registry_contract.setMappingInfoForAddresses(0xDEADBEEF, 0xBADC0FFEE, 1).execute(caller_address=REGISTRY_OWNER_ADDRESS)
+
+    execution_info = await registry_contract.getMappingInfoForL1Address(0xDEADBEEF).call()
+    assert execution_info.result == (0xBADC0FFEE, 1)
+
+    await assert_revert(
+            registry_contract.setMappingInfoForAddresses(0xDEADBEEF, 0xBADC0FFEE, 2).execute(caller_address=REGISTRY_OWNER_ADDRESS),
+            reverted_with="already exists")
+    await registry_contract.clearMappingInfoForAddresses(0xDEADBEEF, 0xBADC0FFEE).execute(caller_address=REGISTRY_OWNER_ADDRESS)
+
+    execution_info = await registry_contract.getMappingInfoForL2Address(0xBADC0FFEE).call()
     assert execution_info.result == (0, 0)
-    execution_info = await registry_contract.getMappingInfoForAddresses(0xDEADBEEF, token_contract.contract_address).call()
-    assert execution_info.result == (1,)
 
-    # Access Control
+
+@pytest.mark.asyncio
+async def test_DerivativeToken_access(contracts_factory):
+    _, token_contract = contracts_factory
 
     execution_info = await token_contract.owner().call()
     assert execution_info.result == (COLLECTION_OWNER_ADDRESS,)
+
     execution_info = await token_contract.isAdmin(COLLECTION_ADMIN_ADDRESS).call()
     assert execution_info.result == (0,)
 
@@ -75,24 +129,31 @@ async def test_contracts():
     execution_info = await token_contract.isAdmin(COLLECTION_ADMIN_ADDRESS).call()
     assert execution_info.result == (1,)
 
-    # Mint Original
+    await token_contract.transferOwnership(COLLECTION_ADMIN_ADDRESS).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    execution_info = await token_contract.owner().call()
+    assert execution_info.result == (COLLECTION_ADMIN_ADDRESS,)
 
-    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, []).execute(caller_address=COLLECTION_ADMIN_ADDRESS)
+    execution_info = await token_contract.isAdmin(COLLECTION_OWNER_ADDRESS).call()
+    assert execution_info.result == (0,)
+
+
+@pytest.mark.asyncio
+async def test_DerivativeToken_royalties(contracts_factory):
+    _, token_contract = contracts_factory
+
+    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, []).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    execution_info = await token_contract.ownerOf(ORIGINAL_TOKEN_ID).call()
+    assert execution_info.result == (ORIGINAL_TOKEN_OWNER_ADDRESS,)
     execution_info = await token_contract.authorOf(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == (ORIGINAL_TOKEN_OWNER_ADDRESS,)
-    execution_info = await token_contract.parentTokensOf(ORIGINAL_TOKEN_ID).call()
-    assert execution_info.result == ([],)
 
-    # License: version
-
-    execution_info = await token_contract.licenseVersion().call()
-    assert execution_info.result == (1,)
-
-    # License: royalties
-
-    await token_contract.setCollectionArraySettings(str_to_felt('royalties'), [123, 5, 456, 10]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    await token_contract.setCollectionArraySettings(str_to_felt('royalties'), [123, 5]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
     execution_info = await token_contract.collectionArraySettings(str_to_felt('royalties')).call()
-    assert execution_info.result == ([123, 5, 456, 10],)
+    assert execution_info.result == ([123, 5],)
+
+    await token_contract.setTokenArraySettings(ORIGINAL_TOKEN_ID, str_to_felt('royalties'), [456, 10]).execute(caller_address=ORIGINAL_TOKEN_OWNER_ADDRESS)
+    execution_info = await token_contract.tokenArraySettings(ORIGINAL_TOKEN_ID, str_to_felt('royalties')).call()
+    assert execution_info.result == ([456, 10],)
 
     await token_contract.setAuthorArraySettings(ORIGINAL_TOKEN_ID, str_to_felt('royalties'), [789, 15]).execute(caller_address=ORIGINAL_TOKEN_OWNER_ADDRESS)
     execution_info = await token_contract.authorArraySettings(ORIGINAL_TOKEN_ID, str_to_felt('royalties')).call()
@@ -101,32 +162,39 @@ async def test_contracts():
     execution_info = await token_contract.royalties(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == ([(123, 5), (456, 10), (789, 15)],)
 
-    # License: licensees
+
+@pytest.mark.asyncio
+async def test_DerivativeToken_mint(contracts_factory):
+    _, token_contract = contracts_factory
+
+    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, []).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    execution_info = await token_contract.parentTokensOf(ORIGINAL_TOKEN_ID).call()
+    assert execution_info.result == ([],)
 
     execution_info = await token_contract.allowToMint(ORIGINAL_TOKEN_ID, ORIGINAL_TOKEN_OWNER_ADDRESS).call()
     assert execution_info.result == (1,)
     execution_info = await token_contract.allowToMint(ORIGINAL_TOKEN_ID, DERIVATIVE_TOKEN_OWNER_ADDRESS).call()
     assert execution_info.result == (0,)
 
+    await assert_revert(
+            token_contract.mint(DERIVATIVE_TOKEN_OWNER_ADDRESS, DERIVATIVE_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS),
+            reverted_with="not licensed")
+
     await token_contract.setTokenArraySettings(ORIGINAL_TOKEN_ID, str_to_felt('licensees'), [DERIVATIVE_TOKEN_OWNER_ADDRESS]).execute(caller_address=ORIGINAL_TOKEN_OWNER_ADDRESS)
     execution_info = await token_contract.allowToMint(ORIGINAL_TOKEN_ID, DERIVATIVE_TOKEN_OWNER_ADDRESS).call()
     assert execution_info.result == (1,)
 
-    # Clear Registry
-
-    await registry_contract.clearMappingInfoForAddresses(0xDEADBEEF, token_contract.contract_address).execute(caller_address=REGISTRY_OWNER_ADDRESS)
-    execution_info = await registry_contract.getMappingInfoForL2Address(token_contract.contract_address).call()
-    assert execution_info.result == (0, 0)
-
-    # Mint Derivative
-
-    await token_contract.mint(DERIVATIVE_TOKEN_OWNER_ADDRESS, DERIVATIVE_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_ADMIN_ADDRESS)
-    execution_info = await token_contract.authorOf(DERIVATIVE_TOKEN_ID).call()
-    assert execution_info.result == (DERIVATIVE_TOKEN_OWNER_ADDRESS,)
+    await token_contract.mint(DERIVATIVE_TOKEN_OWNER_ADDRESS, DERIVATIVE_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
     execution_info = await token_contract.parentTokensOf(DERIVATIVE_TOKEN_ID).call()
     assert execution_info.result == ([(token_contract.contract_address, ORIGINAL_TOKEN_ID)],)
 
-    # License: allow_transfer
+
+@pytest.mark.asyncio
+async def test_DerivativeToken_transfer(contracts_factory):
+    _, token_contract = contracts_factory
+
+    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, []).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, DERIVATIVE_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
 
     execution_info = await token_contract.allowToTransfer(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == (1,)
