@@ -3,7 +3,23 @@ import asyncio
 
 from starkware.starknet.public.abi import get_selector_from_name
 
-from common import *
+from common import (
+    compile_contract,
+    create_clients,
+    declare_contract,
+    deploy_contract,
+    parse_arguments
+)
+
+
+COMPILED_REGISTRY_CONTRACT = compile_contract(
+    'contracts/registry/TokenRegistry.cairo'
+)
+COMPILED_REGISTRY_IMPL_CONTRACT = compile_contract(
+    'contracts/registry/TokenRegistryImpl.cairo'
+)
+
+INITIALIZER_SELECTOR = get_selector_from_name('initializer')
 
 
 async def main():
@@ -13,15 +29,15 @@ async def main():
 
     registry_class = await declare_contract(
         account_clients['comoco_deployer'],
-        'contracts/registry/TokenRegistryImpl.cairo'
+        COMPILED_REGISTRY_IMPL_CONTRACT
     )
 
     registry_contract = await deploy_contract(
         gateway_client,
-        'contracts/registry/TokenRegistry.cairo',
+        COMPILED_REGISTRY_CONTRACT,
         [
             registry_class,
-            get_selector_from_name('initializer'),
+            INITIALIZER_SELECTOR,
             [
                 account_clients['comoco_upgrader'].address,
                 account_clients['comoco_registrar'].address
@@ -29,7 +45,7 @@ async def main():
         ]
     )
 
-    print(hex(registry_contract.address))
+    print(f'TokenRegistry Address: 0x{registry_contract.address:x}')
 
 
 if __name__ == '__main__':
