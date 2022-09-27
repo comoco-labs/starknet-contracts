@@ -103,5 +103,5 @@ async def deploy_contract(
         constructor_args=constructor_args
     )
     if wait_for_accept:
-        res.wait_for_acceptance()
+        await res.wait_for_acceptance()
     return res.deployed_contract
