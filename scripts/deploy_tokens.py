@@ -120,6 +120,7 @@ async def setup_token_contract(
     config: dict
 ):
     if 'l1_addr' in config:
+        print("Registering at TokenRegistry...")
         invocation = await registry_contract.functions['setMappingInfoForAddresses'].invoke(
             config['l1_addr'], token_contract.address, 1, max_fee=MAX_FEE)
         await invocation.wait_for_acceptance()
@@ -135,6 +136,7 @@ async def setup_token_contract(
         calls.append(token_contract.functions['setCollectionArraySettings'].prepare(
             'royalties', [account_clients['comoco_receiver'].address, config['royalties']]))
     if calls:
+        print("Configuring license settings at DerivativeToken...")
         resp = await account_clients['comoco_admin'].execute(calls=calls, max_fee=MAX_FEE)
         await account_clients['comoco_admin'].wait_for_tx(resp.transaction_hash)
 
@@ -148,10 +150,12 @@ async def main():
     args = parse_arguments(parser)
     _, account_clients = create_clients(args)
 
+    print("Declaring DerivativeTokenImpl class...")
     token_class = await declare_contract(
         account_clients['comoco_deployer'],
         COMPILED_TOKEN_IMPL_CONTRACT
     )
+    print("Declaring DerivativeLicense class...")
     license_class = await declare_contract(
         account_clients['comoco_deployer'],
         COMPILED_LICENSE_CONTRACT
@@ -163,13 +167,15 @@ async def main():
     )
 
     for token, config in TOKENS_CONFIG.items():
+        print(f"Deploying DerivativeToken contract for {token}...")
         token_contract = await deploy_token_contract(
             account_clients, token_class, license_class, registry_contract, config
         )
+        print(f"Setting up DerivativeToken contract for {token}...")
         await setup_token_contract(
             account_clients, registry_contract, token_contract, config
         )
-        print(f'{token} Address: 0x{token_contract.address:x}')
+        print(f"{token} Address: 0x{token_contract.address:x}")
 
 
 if __name__ == '__main__':

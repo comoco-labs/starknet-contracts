@@ -27,11 +27,13 @@ async def main():
     args = parse_arguments(parser)
     gateway_client, account_clients = create_clients(args)
 
+    print("Declaring TokenRegistryImpl class...")
     registry_class = await declare_contract(
         account_clients['comoco_deployer'],
         COMPILED_REGISTRY_IMPL_CONTRACT
     )
 
+    print("Deploying TokenRegistry contract...")
     registry_contract = await deploy_contract(
         gateway_client,
         COMPILED_REGISTRY_CONTRACT,
@@ -42,10 +44,11 @@ async def main():
                 account_clients['comoco_upgrader'].address,
                 account_clients['comoco_registrar'].address
             ]
-        ]
+        ],
+        wait_for_accept=True
     )
 
-    print(f'TokenRegistry Address: 0x{registry_contract.address:x}')
+    print(f"TokenRegistry Address: 0x{registry_contract.address:x}")
 
 
 if __name__ == '__main__':

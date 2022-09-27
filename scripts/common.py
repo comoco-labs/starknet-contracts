@@ -1,6 +1,7 @@
 import argparse
 import json
 import pathlib
+from typing import Optional
 
 from starknet_py.compile.compiler import create_contract_class, starknet_compile
 from starknet_py.contract import Contract
@@ -93,11 +94,14 @@ async def declare_contract(
 
 
 async def deploy_contract(
-    client: Client, compiled_contract: str, constructor_args: list
+    client: Client, compiled_contract: str, constructor_args: list,
+    wait_for_accept: Optional[bool] = False
 ) -> Contract:
     res = await Contract.deploy(
         client=client,
         compiled_contract=compiled_contract,
         constructor_args=constructor_args
     )
+    if wait_for_accept:
+        res.wait_for_acceptance()
     return res.deployed_contract
