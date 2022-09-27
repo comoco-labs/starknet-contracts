@@ -23,7 +23,7 @@ func MappingInfoRegistered(l1Addr: felt, l2Addr: felt, sot: felt) {
 }
 
 @event
-func MappingInfoUnregistered(l1Addr: felt, l2Addr: felt, sot: felt) {
+func MappingInfoUnregistered(l1Addr: felt, l2Addr: felt) {
 }
 
 //
@@ -166,6 +166,7 @@ func setMappingInfoForAddresses{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
     if (existingL2Addr * (existingL2Addr - l2Addr) != 0) {
         TokenRegistry_l1_addr_for_l2.write(existingL2Addr, 0);
         TokenRegistry_source_of_truth.write(l1Addr, existingL2Addr, 0);
+        MappingInfoUnregistered.emit(l1Addr, existingL2Addr);
         tempvar syscall_ptr = syscall_ptr;
         tempvar pedersen_ptr = pedersen_ptr;
         tempvar range_check_ptr = range_check_ptr;
@@ -178,6 +179,7 @@ func setMappingInfoForAddresses{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
     if (existingL1Addr * (existingL1Addr - l1Addr) != 0) {
         TokenRegistry_l2_addr_for_l1.write(existingL1Addr, 0);
         TokenRegistry_source_of_truth.write(existingL1Addr, l2Addr, 0);
+        MappingInfoUnregistered.emit(existingL1Addr, l2Addr);
         tempvar syscall_ptr = syscall_ptr;
         tempvar pedersen_ptr = pedersen_ptr;
         tempvar range_check_ptr = range_check_ptr;
@@ -209,7 +211,7 @@ func clearMappingInfoForAddresses{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*
     TokenRegistry_l2_addr_for_l1.write(l1Addr, 0);
     TokenRegistry_l1_addr_for_l2.write(l2Addr, 0);
     TokenRegistry_source_of_truth.write(l1Addr, l2Addr, 0);
-    MappingInfoUnregistered.emit(l1Addr, l2Addr, sot);
+    MappingInfoUnregistered.emit(l1Addr, l2Addr);
     return ();
 }
 
