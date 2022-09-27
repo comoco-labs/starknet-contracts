@@ -163,12 +163,28 @@ func setMappingInfoForAddresses{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
         assert (sot - 1) * (sot - 2) = 0;
     }
     let (existingL2Addr) = TokenRegistry_l2_addr_for_l1.read(l1Addr);
-    with_attr error_message("TokenRegistry: l1Addr already exists") {
-        assert existingL2Addr = 0;
+    if (existingL2Addr * (existingL2Addr - l2Addr) != 0) {
+        TokenRegistry_l1_addr_for_l2.write(existingL2Addr, 0);
+        TokenRegistry_source_of_truth.write(l1Addr, existingL2Addr, 0);
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    } else {
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
     }
     let (existingL1Addr) = TokenRegistry_l1_addr_for_l2.read(l2Addr);
-    with_attr error_message("TokenRegistry: l2Addr already exists") {
-        assert existingL1Addr = 0;
+    if (existingL1Addr * (existingL1Addr - l1Addr) != 0) {
+        TokenRegistry_l2_addr_for_l1.write(existingL1Addr, 0);
+        TokenRegistry_source_of_truth.write(existingL1Addr, l2Addr, 0);
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    } else {
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
     }
     TokenRegistry_l2_addr_for_l1.write(l1Addr, l2Addr);
     TokenRegistry_l1_addr_for_l2.write(l2Addr, l1Addr);

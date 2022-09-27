@@ -99,17 +99,18 @@ async def test_TokenRegistry(contracts_factory):
     await assert_revert(
         registry_contract.setMappingInfoForAddresses(0xDEADBEEF, 0xBADC0FFEE, 1).execute())
     await registry_contract.setMappingInfoForAddresses(0xDEADBEEF, 0xBADC0FFEE, 1).execute(caller_address=REGISTRY_OWNER_ADDRESS)
-
     execution_info = await registry_contract.getMappingInfoForL1Address(0xDEADBEEF).call()
     assert execution_info.result == (0xBADC0FFEE, 1)
 
-    await assert_revert(
-        registry_contract.setMappingInfoForAddresses(0xDEADBEEF, 0xBADC0FFEE, 2).execute(caller_address=REGISTRY_OWNER_ADDRESS),
-        reverted_with="already exists")
-    await registry_contract.clearMappingInfoForAddresses(0xDEADBEEF, 0xBADC0FFEE).execute(caller_address=REGISTRY_OWNER_ADDRESS)
-
+    await registry_contract.setMappingInfoForAddresses(0xDEADBEEF, 0xFEEDF00D, 2).execute(caller_address=REGISTRY_OWNER_ADDRESS)
+    execution_info = await registry_contract.getMappingInfoForL1Address(0xDEADBEEF).call()
+    assert execution_info.result == (0xFEEDF00D, 2)
     execution_info = await registry_contract.getMappingInfoForL2Address(0xBADC0FFEE).call()
     assert execution_info.result == (0, 0)
+
+    await registry_contract.clearMappingInfoForAddresses(0xDEADBEEF, 0xFEEDF00D).execute(caller_address=REGISTRY_OWNER_ADDRESS)
+    execution_info = await registry_contract.getMappingInfoForAddresses(0xDEADBEEF, 0xFEEDF00D).call()
+    assert execution_info.result == (0,)
 
 
 @pytest.mark.asyncio
