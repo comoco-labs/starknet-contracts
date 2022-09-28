@@ -15,7 +15,8 @@ from common import (
     deploy_contract,
     get_abi,
     parse_arguments,
-    replace_abi
+    replace_abi,
+    write_contract
 )
 
 
@@ -156,11 +157,15 @@ async def main():
         account_clients['comoco_deployer'],
         compiled_token_impl_contract
     )
+    write_contract(args.output_file, 'Token Implementation', token_class)
+
     print("Declaring DerivativeLicense class...")
     license_class = await declare_contract(
         account_clients['comoco_deployer'],
         compile_contract(LICENSE_IMPL_FILE)
     )
+    write_contract(args.output_file, 'License Implementation', license_class)
+
     registry_contract = Contract(
         args.registry_address,
         get_abi(compile_contract(REGISTRY_IMPL_FILE)),
@@ -175,11 +180,12 @@ async def main():
             account_clients, compiled_token_contract, token_impl_abi,
             token_class, license_class, registry_contract, config
         )
+        write_contract(args.output_file, token + ' Contract', token_contract.address)
+
         print(f"Setting up DerivativeToken contract for {token}...")
         await setup_token_contract(
             account_clients, registry_contract, token_contract, config
         )
-        print(f"{token} Address: 0x{token_contract.address:x}")
 
 
 if __name__ == '__main__':

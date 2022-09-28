@@ -9,7 +9,8 @@ from common import (
     create_clients,
     declare_contract,
     deploy_contract,
-    parse_arguments
+    parse_arguments,
+    write_contract
 )
 
 
@@ -33,6 +34,7 @@ async def main():
         account_clients['comoco_deployer'],
         compile_contract(REGISTRY_IMPL_FILE)
     )
+    write_contract(args.output_file, 'Registry Implementation', registry_class)
 
     print("Deploying TokenRegistry contract...")
     registry_contract = await deploy_contract(
@@ -48,8 +50,7 @@ async def main():
         ],
         wait_for_accept=True
     )
-
-    print(f"TokenRegistry Address: 0x{registry_contract.address:x}")
+    write_contract(args.output_file, 'Registry Contract', registry_contract.address)
 
 
 if __name__ == '__main__':

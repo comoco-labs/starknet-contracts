@@ -46,6 +46,10 @@ def parse_arguments(parser: argparse.ArgumentParser):
         '--accounts_file', dest='accounts_file', default='accounts.json',
         help='The json file containing the accounts info'
     )
+    parser.add_argument(
+        '--output', dest='output_file', default='deployments.txt',
+        help='The txt file to output the deployed contract addresses'
+    )
     return parser.parse_args()
 
 
@@ -117,3 +121,10 @@ async def deploy_contract(
     if wait_for_accept:
         await res.wait_for_acceptance()
     return res.deployed_contract
+
+
+def write_contract(
+    file: str, name: str, hash: int
+):
+    with open(file, 'a') as f:
+        f.write(f"{name}: 0x{hash:x}\n")
