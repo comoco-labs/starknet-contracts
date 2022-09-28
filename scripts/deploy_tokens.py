@@ -1,9 +1,10 @@
 import argparse
 import asyncio
+import os
 
 from starknet_py.contract import Contract
 from starknet_py.net import AccountClient
-from starknet_py.net.gateway_client import GatewayClient
+from starkware.starknet.public.abi import AbiType
 from starkware.starknet.public.abi import get_selector_from_name
 
 from common import (
@@ -18,21 +19,18 @@ from common import (
 )
 
 
-COMPILED_REGISTRY_IMPL_CONTRACT = compile_contract(
-    'contracts/registry/TokenRegistryImpl.cairo'
+REGISTRY_IMPL_FILE = os.path.join(
+    'contracts', 'registry', 'TokenRegistryImpl.cairo'
 )
-COMPILED_TOKEN_CONTRACT = compile_contract(
-    'contracts/token/DerivativeToken.cairo'
+TOKEN_CONTRACT_FILE = os.path.join(
+    'contracts', 'token', 'DerivativeToken.cairo'
 )
-COMPILED_TOKEN_IMPL_CONTRACT = compile_contract(
-    'contracts/token/DerivativeTokenImpl.cairo'
+TOKEN_IMPL_FILE = os.path.join(
+    'contracts', 'token', 'DerivativeTokenImpl.cairo'
 )
-COMPILED_LICENSE_CONTRACT = compile_contract(
-    'contracts/license/DerivativeLicense.cairo'
+LICENSE_IMPL_FILE = os.path.join(
+    'contracts', 'license', 'DerivativeLicense.cairo'
 )
-
-REGISTRY_IMPL_ABI = get_abi(COMPILED_REGISTRY_IMPL_CONTRACT)
-TOKEN_IMPL_ABI = get_abi(COMPILED_TOKEN_IMPL_CONTRACT)
 
 INITIALIZER_SELECTOR = get_selector_from_name('initializer')
 
@@ -88,6 +86,8 @@ TOKENS_CONFIG = {
 
 async def deploy_token_contract(
     account_clients: dict[str, AccountClient],
+    compiled_token_contract: str,
+    token_impl_abi: AbiType,
     token_class: int,
     license_class: int,
     registry_contract: Contract,
@@ -95,7 +95,7 @@ async def deploy_token_contract(
 ) -> Contract:
     token_contract = await deploy_contract(
         account_clients['comoco_admin'],
-        COMPILED_TOKEN_CONTRACT,
+        compiled_token_contract,
         [
             token_class,
             INITIALIZER_SELECTOR,
@@ -109,7 +109,7 @@ async def deploy_token_contract(
             ]
         ]
     )
-    token_contract = replace_abi(token_contract, TOKEN_IMPL_ABI)
+    token_contract = replace_abi(token_contract, token_impl_abi)
     return token_contract
 
 
@@ -151,25 +151,29 @@ async def main():
     _, account_clients = create_clients(args)
 
     print("Declaring DerivativeTokenImpl class...")
+    compiled_token_impl_contract = compile_contract(TOKEN_IMPL_FILE)
     token_class = await declare_contract(
         account_clients['comoco_deployer'],
-        COMPILED_TOKEN_IMPL_CONTRACT
+        compiled_token_impl_contract
     )
     print("Declaring DerivativeLicense class...")
     license_class = await declare_contract(
         account_clients['comoco_deployer'],
-        COMPILED_LICENSE_CONTRACT
+        compile_contract(LICENSE_IMPL_FILE)
     )
     registry_contract = Contract(
         args.registry_address,
-        REGISTRY_IMPL_ABI,
+        get_abi(compile_contract(REGISTRY_IMPL_FILE)),
         account_clients['comoco_registrar']
     )
 
+    compiled_token_contract = compile_contract(TOKEN_CONTRACT_FILE)
+    token_impl_abi = get_abi(compiled_token_impl_contract)
     for token, config in TOKENS_CONFIG.items():
         print(f"Deploying DerivativeToken contract for {token}...")
         token_contract = await deploy_token_contract(
-            account_clients, token_class, license_class, registry_contract, config
+            account_clients, compiled_token_contract, token_impl_abi,
+            token_class, license_class, registry_contract, config
         )
         print(f"Setting up DerivativeToken contract for {token}...")
         await setup_token_contract(
