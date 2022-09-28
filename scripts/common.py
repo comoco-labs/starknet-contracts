@@ -1,7 +1,7 @@
 import argparse
 import json
 import pathlib
-from typing import Optional
+from typing import Optional, Union
 
 from starknet_py.compile.compiler import create_contract_class, starknet_compile
 from starknet_py.contract import Contract
@@ -25,17 +25,25 @@ CHAIN_IDS = {
     'mainnet': StarknetChainId.MAINNET
 }
 
+ACCOUNT_NAMES = (
+    'comoco_deployer',
+    'comoco_upgrader',
+    'comoco_registrar',
+    'comoco_admin',
+    'comoco_receiver',
+    'comoco_agent'
+)
+
 MAX_FEE = int(1e16)
 
 
 def parse_arguments(parser: argparse.ArgumentParser):
     parser.add_argument(
-        '--network', dest='network', required=True,
+        '--network', dest='network', default='devnet',
         help='The name of the Starknet network'
     )
     parser.add_argument(
-        '--accounts_file', dest='accounts_file',
-        default='~/.starknet_accounts/starknet_open_zeppelin_accounts.json',
+        '--accounts_file', dest='accounts_file', default='accounts.json',
         help='The json file containing the accounts info'
     )
     return parser.parse_args()
@@ -44,8 +52,12 @@ def parse_arguments(parser: argparse.ArgumentParser):
 def _setup_accounts(
     network: str,
     client: Client,
-    accounts: dict[str, dict[str, str]]
+    accounts: Union[dict, list]
 ) -> dict[str, AccountClient]:
+    if isinstance(accounts, list):
+        accounts = dict(zip(ACCOUNT_NAMES, accounts[:len(ACCOUNT_NAMES)]))
+    else:
+        accounts = accounts[network]
     account_clients = {}
     for account_name, account_info in accounts.items():
         account_client = AccountClient(
@@ -62,7 +74,7 @@ def _setup_accounts(
 def create_clients(args) -> tuple[GatewayClient, dict[str, AccountClient]]:
     p = pathlib.Path(args.accounts_file).expanduser()
     with p.open() as f:
-        accounts = json.load(f)[args.network]
+        accounts = json.load(f)
 
     gateway_client = GatewayClient(NETWORKS[args.network])
     account_clients = _setup_accounts(args.network, gateway_client, accounts)
