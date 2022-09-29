@@ -102,6 +102,16 @@ Create accounts using Argent-X or Braavos wallet, and export to a json file in t
 }
 ```
 
+#### Fund the accounts
+
+Use the [faucet](https://faucet.goerli.starknet.io) for testnet, or other means for mainnet, to fund the following accounts:
+
+- comoco_deployer
+- comoco_upgrader
+- comoco_registrar
+- comoco_admin
+
+
 #### Deploy the contracts
 
 Run the same commands as in devnet with the following flags:
