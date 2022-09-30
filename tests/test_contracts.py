@@ -12,12 +12,10 @@ REGISTRY_OWNER_ADDRESS = 0x2222222222222222222222222222222222222222
 COLLECTION_OWNER_ADDRESS = 0x3333333333333333333333333333333333333333
 COLLECTION_ADMIN_ADDRESS = 0x4444444444444444444444444444444444444444
 
-REGISTRY_IMPL_FILE = os.path.join('contracts', 'registry', 'TokenRegistryImpl.cairo')
-TOKEN_IMPL_FILE = os.path.join('contracts', 'token', 'DerivativeTokenImpl.cairo')
-LICENSE_IMPL_FILE = os.path.join('contracts', 'license', 'DerivativeLicense.cairo')
-
-REGISTRY_CONTRACT_FILE = os.path.join('contracts', 'registry', 'TokenRegistry.cairo')
-TOKEN_CONTRACT_FILE = os.path.join('contracts', 'token', 'DerivativeToken.cairo')
+PROXY_FILE = os.path.join('contracts', 'proxy', 'Proxy.cairo')
+REGISTRY_FILE = os.path.join('contracts', 'registry', 'TokenRegistry.cairo')
+TOKEN_FILE = os.path.join('contracts', 'token', 'DerivativeToken.cairo')
+LICENSE_FILE = os.path.join('contracts', 'license', 'DerivativeLicense.cairo')
 
 INITIALIZER_SELECTOR = get_selector_from_name('initializer')
 NAME = str_to_felt('name')
@@ -25,20 +23,20 @@ SYMBOL = str_to_felt('symbol')
 
 ORIGINAL_TOKEN_ID = to_uint(10)
 ORIGINAL_TOKEN_OWNER_ADDRESS = 0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-DERIVATIVE_TOKEN_ID = to_uint(11)
-DERIVATIVE_TOKEN_OWNER_ADDRESS = 0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+DERIVED_TOKEN_ID = to_uint(11)
+DERIVED_TOKEN_OWNER_ADDRESS = 0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
 
 
 @pytest.fixture(scope='module')
 async def contracts_init():
     starknet = await Starknet.empty()
 
-    registry_class = await starknet.declare(REGISTRY_IMPL_FILE)
-    token_class = await starknet.declare(TOKEN_IMPL_FILE)
-    license_class = await starknet.declare(LICENSE_IMPL_FILE)
+    registry_class = await starknet.declare(REGISTRY_FILE)
+    token_class = await starknet.declare(TOKEN_FILE)
+    license_class = await starknet.declare(LICENSE_FILE)
 
     registry_contract = await starknet.deploy(
-        source=REGISTRY_CONTRACT_FILE,
+        source=PROXY_FILE,
         constructor_calldata=[
             registry_class.class_hash,
             INITIALIZER_SELECTOR,
@@ -50,7 +48,7 @@ async def contracts_init():
     registry_contract = registry_contract.replace_abi(registry_class.abi)
 
     token_contract = await starknet.deploy(
-        source=TOKEN_CONTRACT_FILE,
+        source=PROXY_FILE,
         constructor_calldata=[
             token_class.class_hash,
             INITIALIZER_SELECTOR,
@@ -171,19 +169,19 @@ async def test_DerivativeToken_mint(contracts_factory):
 
     execution_info = await token_contract.allowToMint(ORIGINAL_TOKEN_ID, ORIGINAL_TOKEN_OWNER_ADDRESS).call()
     assert execution_info.result == (1,)
-    execution_info = await token_contract.allowToMint(ORIGINAL_TOKEN_ID, DERIVATIVE_TOKEN_OWNER_ADDRESS).call()
+    execution_info = await token_contract.allowToMint(ORIGINAL_TOKEN_ID, DERIVED_TOKEN_OWNER_ADDRESS).call()
     assert execution_info.result == (0,)
 
     await assert_revert(
-        token_contract.mint(DERIVATIVE_TOKEN_OWNER_ADDRESS, DERIVATIVE_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS),
+        token_contract.mint(DERIVED_TOKEN_OWNER_ADDRESS, DERIVED_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS),
         reverted_with="not licensed")
 
-    await token_contract.setTokenArraySettings(ORIGINAL_TOKEN_ID, str_to_felt('licensees'), [DERIVATIVE_TOKEN_OWNER_ADDRESS]).execute(caller_address=ORIGINAL_TOKEN_OWNER_ADDRESS)
-    execution_info = await token_contract.allowToMint(ORIGINAL_TOKEN_ID, DERIVATIVE_TOKEN_OWNER_ADDRESS).call()
+    await token_contract.setTokenArraySettings(ORIGINAL_TOKEN_ID, str_to_felt('licensees'), [DERIVED_TOKEN_OWNER_ADDRESS]).execute(caller_address=ORIGINAL_TOKEN_OWNER_ADDRESS)
+    execution_info = await token_contract.allowToMint(ORIGINAL_TOKEN_ID, DERIVED_TOKEN_OWNER_ADDRESS).call()
     assert execution_info.result == (1,)
 
-    await token_contract.mint(DERIVATIVE_TOKEN_OWNER_ADDRESS, DERIVATIVE_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
-    execution_info = await token_contract.parentTokensOf(DERIVATIVE_TOKEN_ID).call()
+    await token_contract.mint(DERIVED_TOKEN_OWNER_ADDRESS, DERIVED_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    execution_info = await token_contract.parentTokensOf(DERIVED_TOKEN_ID).call()
     assert execution_info.result == ([(token_contract.contract_address, ORIGINAL_TOKEN_ID)],)
 
 
@@ -192,11 +190,11 @@ async def test_DerivativeToken_transfer(contracts_factory):
     _, token_contract = contracts_factory
 
     await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, []).execute(caller_address=COLLECTION_OWNER_ADDRESS)
-    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, DERIVATIVE_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, DERIVED_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
 
     execution_info = await token_contract.allowToTransfer(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == (1,)
-    execution_info = await token_contract.allowTransfer(DERIVATIVE_TOKEN_ID).call()
+    execution_info = await token_contract.allowTransfer(DERIVED_TOKEN_ID).call()
     assert execution_info.result == (1,)
 
     await token_contract.setCollectionSettings(str_to_felt('allow_transfer'), 1).execute(caller_address=COLLECTION_OWNER_ADDRESS)
@@ -204,7 +202,7 @@ async def test_DerivativeToken_transfer(contracts_factory):
     assert execution_info.result == (1,)
     execution_info = await token_contract.allowToTransfer(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == (1,)
-    execution_info = await token_contract.allowTransfer(DERIVATIVE_TOKEN_ID).call()
+    execution_info = await token_contract.allowTransfer(DERIVED_TOKEN_ID).call()
     assert execution_info.result == (1,)
 
     await token_contract.setTokenSettings(ORIGINAL_TOKEN_ID, str_to_felt('allow_transfer'), 2).execute(caller_address=ORIGINAL_TOKEN_OWNER_ADDRESS)
@@ -212,5 +210,5 @@ async def test_DerivativeToken_transfer(contracts_factory):
     assert execution_info.result == (2,)
     execution_info = await token_contract.allowToTransfer(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == (0,)
-    execution_info = await token_contract.allowTransfer(DERIVATIVE_TOKEN_ID).call()
+    execution_info = await token_contract.allowTransfer(DERIVED_TOKEN_ID).call()
     assert execution_info.result == (0,)

@@ -20,16 +20,16 @@ from common import (
 )
 
 
-REGISTRY_IMPL_FILE = os.path.join(
-    'contracts', 'registry', 'TokenRegistryImpl.cairo'
+PROXY_FILE = os.path.join(
+    'contracts', 'proxy', 'Proxy.cairo'
 )
-TOKEN_CONTRACT_FILE = os.path.join(
+REGISTRY_FILE = os.path.join(
+    'contracts', 'registry', 'TokenRegistry.cairo'
+)
+TOKEN_FILE = os.path.join(
     'contracts', 'token', 'DerivativeToken.cairo'
 )
-TOKEN_IMPL_FILE = os.path.join(
-    'contracts', 'token', 'DerivativeTokenImpl.cairo'
-)
-LICENSE_IMPL_FILE = os.path.join(
+LICENSE_FILE = os.path.join(
     'contracts', 'license', 'DerivativeLicense.cairo'
 )
 
@@ -87,8 +87,8 @@ TOKENS_CONFIG = {
 
 async def deploy_token_contract(
     account_clients: dict[str, AccountClient],
-    compiled_token_contract: str,
-    token_impl_abi: AbiType,
+    compiled_proxy_contract: str,
+    token_abi: AbiType,
     token_class: int,
     license_class: int,
     registry_contract: Contract,
@@ -96,7 +96,7 @@ async def deploy_token_contract(
 ) -> Contract:
     token_contract = await deploy_contract(
         account_clients['comoco_admin'],
-        compiled_token_contract,
+        compiled_proxy_contract,
         [
             token_class,
             INITIALIZER_SELECTOR,
@@ -110,7 +110,7 @@ async def deploy_token_contract(
             ]
         ]
     )
-    token_contract = replace_abi(token_contract, token_impl_abi)
+    token_contract = replace_abi(token_contract, token_abi)
     return token_contract
 
 
@@ -121,7 +121,6 @@ async def setup_token_contract(
     config: dict
 ):
     if 'l1_addr' in config:
-        print("Registering at TokenRegistry...")
         invocation = await registry_contract.functions['setMappingInfoForAddresses'].invoke(
             config['l1_addr'], token_contract.address, 1, max_fee=MAX_FEE)
         await invocation.wait_for_acceptance()
@@ -137,7 +136,6 @@ async def setup_token_contract(
         calls.append(token_contract.functions['setCollectionArraySettings'].prepare(
             'royalties', [account_clients['comoco_receiver'].address, config['royalties']]))
     if calls:
-        print("Configuring license settings at DerivativeToken...")
         resp = await account_clients['comoco_admin'].execute(calls=calls, max_fee=MAX_FEE)
         await account_clients['comoco_admin'].wait_for_tx(resp.transaction_hash)
 
@@ -151,33 +149,33 @@ async def main():
     args = parse_arguments(parser)
     _, account_clients = create_clients(args)
 
-    print("Declaring DerivativeTokenImpl class...")
-    compiled_token_impl_contract = compile_contract(TOKEN_IMPL_FILE)
+    print("Declaring DerivativeToken class...")
+    compiled_token_contract = compile_contract(TOKEN_FILE)
     token_class = await declare_contract(
         account_clients['comoco_deployer'],
-        compiled_token_impl_contract
+        compiled_token_contract
     )
-    write_contract(args.output_file, 'Token Implementation', token_class)
+    write_contract(args.output_file, 'Token Class', token_class)
 
     print("Declaring DerivativeLicense class...")
     license_class = await declare_contract(
         account_clients['comoco_deployer'],
-        compile_contract(LICENSE_IMPL_FILE)
+        compile_contract(LICENSE_FILE)
     )
-    write_contract(args.output_file, 'License Implementation', license_class)
+    write_contract(args.output_file, 'License Class', license_class)
 
     registry_contract = Contract(
         args.registry_address,
-        get_abi(compile_contract(REGISTRY_IMPL_FILE)),
+        get_abi(compile_contract(REGISTRY_FILE)),
         account_clients['comoco_registrar']
     )
 
-    compiled_token_contract = compile_contract(TOKEN_CONTRACT_FILE)
-    token_impl_abi = get_abi(compiled_token_impl_contract)
+    compiled_proxy_contract = compile_contract(PROXY_FILE)
+    token_abi = get_abi(compiled_token_contract)
     for token, config in TOKENS_CONFIG.items():
         print(f"Deploying DerivativeToken contract for {token}...")
         token_contract = await deploy_token_contract(
-            account_clients, compiled_token_contract, token_impl_abi,
+            account_clients, compiled_proxy_contract, token_abi,
             token_class, license_class, registry_contract, config
         )
         write_contract(args.output_file, token + ' Contract', token_contract.address)

@@ -14,11 +14,11 @@ from common import (
 )
 
 
-REGISTRY_CONTRACT_FILE = os.path.join(
-    'contracts', 'registry', 'TokenRegistry.cairo'
+PROXY_FILE = os.path.join(
+    'contracts', 'proxy', 'Proxy.cairo'
 )
-REGISTRY_IMPL_FILE = os.path.join(
-    'contracts', 'registry', 'TokenRegistryImpl.cairo'
+REGISTRY_FILE = os.path.join(
+    'contracts', 'registry', 'TokenRegistry.cairo'
 )
 
 INITIALIZER_SELECTOR = get_selector_from_name('initializer')
@@ -29,17 +29,17 @@ async def main():
     args = parse_arguments(parser)
     gateway_client, account_clients = create_clients(args)
 
-    print("Declaring TokenRegistryImpl class...")
+    print("Declaring TokenRegistry class...")
     registry_class = await declare_contract(
         account_clients['comoco_deployer'],
-        compile_contract(REGISTRY_IMPL_FILE)
+        compile_contract(REGISTRY_FILE)
     )
-    write_contract(args.output_file, 'Registry Implementation', registry_class)
+    write_contract(args.output_file, 'Registry Class', registry_class)
 
     print("Deploying TokenRegistry contract...")
     registry_contract = await deploy_contract(
         gateway_client,
-        compile_contract(REGISTRY_CONTRACT_FILE),
+        compile_contract(PROXY_FILE),
         [
             registry_class,
             INITIALIZER_SELECTOR,

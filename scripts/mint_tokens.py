@@ -15,8 +15,8 @@ from common import (
 )
 
 
-TOKEN_IMPL_FILE = os.path.join(
-    'contracts', 'token', 'DerivativeTokenImpl.cairo'
+TOKEN_FILE = os.path.join(
+    'contracts', 'token', 'DerivativeToken.cairo'
 )
 
 BATCH_SIZE = 100
@@ -68,11 +68,11 @@ async def main():
         help='The list of addresses from which the token contract is derived'
     )
     parser.add_argument(
-        '--start_id', dest='start_id', required=True,
+        '--start', dest='start_id', required=True,
         help='The starting ID of tokens to mint'
     )
     parser.add_argument(
-        '--total_num', dest='total_num', required=True,
+        '--total', dest='total_num', required=True,
         help='The total number of tokens to mint'
     )
     args = parse_arguments(parser)
@@ -80,7 +80,7 @@ async def main():
     _, account_clients = create_clients(args)
     token_contract = Contract(
         args.token_address,
-        get_abi(compile_contract(TOKEN_IMPL_FILE)),
+        get_abi(compile_contract(TOKEN_FILE)),
         account_clients['comoco_admin']
     )
     parent_token_addresses = args.parent_token_addresses or []

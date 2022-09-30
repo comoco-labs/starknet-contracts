@@ -57,7 +57,7 @@ make prep  # Accounts are exported to the accounts.json file
 #### Deploy the TokenRegistry contract
 
 ```
-python scripts/deploy_registry.py  # Find REGISTRY_ADDRESS in the output deployments.txt file
+python scripts/deploy_registry.py  # Find REGISTRY_ADDRESS in the output deployments.txt file after "Registry Contract"
 ```
 
 #### Deploy the DerivativeToken contracts
