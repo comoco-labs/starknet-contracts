@@ -68,11 +68,11 @@ async def main():
         help='The list of addresses from which the token contract is derived'
     )
     parser.add_argument(
-        '--start', dest='start_id', required=True,
+        '--start', dest='start_id', type=int, required=True,
         help='The starting ID of tokens to mint'
     )
     parser.add_argument(
-        '--total', dest='total_num', required=True,
+        '--total', dest='total_num', type=int, required=True,
         help='The total number of tokens to mint'
     )
     args = parse_arguments(parser)
@@ -87,8 +87,8 @@ async def main():
     await mint_tokens(
         account_clients,
         token_contract,
-        int(args.start_id),
-        int(args.total_num),
+        args.start_id,
+        args.total_num,
         parent_token_addresses
     )
 

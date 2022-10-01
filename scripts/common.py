@@ -10,6 +10,7 @@ from starknet_py.net.client import Client
 from starknet_py.net.gateway_client import GatewayClient
 from starknet_py.net.models.chains import StarknetChainId
 from starknet_py.net.networks import TESTNET, MAINNET
+from starknet_py.transactions.declare import make_declare_tx
 from starkware.starknet.public.abi import AbiType
 
 
@@ -34,23 +35,32 @@ ACCOUNT_NAMES = (
     'comoco_agent'
 )
 
+TX_VERSION = 1
+
 MAX_FEE = int(1e16)
 
 
 def parse_arguments(parser: argparse.ArgumentParser):
+    global TX_VERSION
     parser.add_argument(
         '--network', dest='network', default='devnet',
-        help='The name of the Starknet network'
+        help='The name of the StarkNet network'
     )
     parser.add_argument(
         '--accounts_file', dest='accounts_file', default='accounts.json',
         help='The json file containing the accounts info'
     )
     parser.add_argument(
+        '--tx_version', dest='tx_version', default=TX_VERSION, type=int,
+        help='The version of the transaction to send in'
+    )
+    parser.add_argument(
         '--output', dest='output_file', default='deployments.txt',
         help='The txt file to output the deployed contract addresses'
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    TX_VERSION = args.tx_version
+    return args
 
 
 def _setup_accounts(
@@ -69,7 +79,7 @@ def _setup_accounts(
             address=account_info['address'],
             key_pair=KeyPair.from_private_key(int(account_info['private_key'], 0)),
             chain=CHAIN_IDS[network],
-            supported_tx_version=1
+            supported_tx_version=TX_VERSION
         )
         account_clients[account_name] = account_client
     return account_clients
@@ -101,10 +111,13 @@ def replace_abi(contract: Contract, abi: AbiType) -> Contract:
 async def declare_contract(
     account_client: AccountClient, compiled_contract: str
 ) -> int:
-    tx = await account_client.sign_declare_transaction(
-        compiled_contract=compiled_contract,
-        max_fee=MAX_FEE
-    )
+    if TX_VERSION == 0:
+        tx = make_declare_tx(compiled_contract=compiled_contract)
+    else:
+        tx = await account_client.sign_declare_transaction(
+            compiled_contract=compiled_contract,
+            max_fee=MAX_FEE
+        )
     resp = await account_client.declare(tx)
     return resp.class_hash
 
