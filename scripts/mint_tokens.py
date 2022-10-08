@@ -1,10 +1,12 @@
 import argparse
 import asyncio
 import os
+import sys
 
 from starknet_py.contract import Contract
 from starknet_py.net import AccountClient
 from starknet_py.net.client_models import Calls
+from starknet_py.transaction_exceptions import TransactionFailedError
 
 from common import (
     MAX_FEE,
@@ -30,7 +32,10 @@ async def batch_mint(
 ):
     print(f"Minting tokens from {from_id} to {to_id} at DerivativeToken...")
     resp = await account_client.execute(calls=calls, max_fee=MAX_FEE * BATCH_SIZE)
-    await account_client.wait_for_tx(resp.transaction_hash)
+    try:
+        await account_client.wait_for_tx(resp.transaction_hash)
+    except TransactionFailedError as e:
+        print(e, file=sys.stderr)
 
 
 async def mint_tokens(
