@@ -31,7 +31,7 @@ async def main():
 
     print("Declaring TokenRegistry class...")
     registry_class = await declare_contract(
-        account_clients['comoco_deployer'],
+        account_clients['comoco_dev'],
         compile_contract(REGISTRY_FILE)
     )
     write_contract(args.output_file, 'Registry Class', registry_class)
@@ -44,7 +44,7 @@ async def main():
             registry_class,
             INITIALIZER_SELECTOR,
             [
-                account_clients['comoco_upgrader'].address,
+                account_clients['comoco_dev'].address,
                 account_clients['comoco_registrar'].address
             ]
         ],

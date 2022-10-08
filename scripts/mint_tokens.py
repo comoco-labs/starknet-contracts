@@ -45,7 +45,7 @@ async def mint_tokens(
     calls = []
     while id < start_id + total_num:
         calls.append(token_contract.functions['mint'].prepare(
-            account_clients['comoco_agent'].address,
+            account_clients['comoco_admin'].address,
             id,
             [{'collection': int(addr, 0), 'id': id} for addr in parent_token_addresses]))
         if len(calls) == BATCH_SIZE:

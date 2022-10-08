@@ -101,7 +101,7 @@ async def deploy_token_contract(
             token_class,
             INITIALIZER_SELECTOR,
             [
-                account_clients['comoco_upgrader'].address,
+                account_clients['comoco_dev'].address,
                 config['name'],
                 config['symbol'],
                 account_clients['comoco_admin'].address,
@@ -134,7 +134,7 @@ async def setup_token_contract(
             'drag_along', config['drag_along']))
     if 'royalties' in config:
         calls.append(token_contract.functions['setCollectionArraySettings'].prepare(
-            'royalties', [account_clients['comoco_receiver'].address, config['royalties']]))
+            'royalties', [account_clients['comoco_bank'].address, config['royalties']]))
     if calls:
         resp = await account_clients['comoco_admin'].execute(calls=calls, max_fee=MAX_FEE)
         await account_clients['comoco_admin'].wait_for_tx(resp.transaction_hash)
@@ -152,14 +152,14 @@ async def main():
     print("Declaring DerivativeToken class...")
     compiled_token_contract = compile_contract(TOKEN_FILE)
     token_class = await declare_contract(
-        account_clients['comoco_deployer'],
+        account_clients['comoco_dev'],
         compiled_token_contract
     )
     write_contract(args.output_file, 'Token Class', token_class)
 
     print("Declaring DerivativeLicense class...")
     license_class = await declare_contract(
-        account_clients['comoco_deployer'],
+        account_clients['comoco_dev'],
         compile_contract(LICENSE_FILE)
     )
     write_contract(args.output_file, 'License Class', license_class)

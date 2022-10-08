@@ -27,12 +27,10 @@ CHAIN_IDS = {
 }
 
 ACCOUNT_NAMES = (
-    'comoco_deployer',
-    'comoco_upgrader',
+    'comoco_dev',
+    'comoco_bank',
     'comoco_registrar',
-    'comoco_admin',
-    'comoco_receiver',
-    'comoco_agent'
+    'comoco_admin'
 )
 
 TX_VERSION = 1
