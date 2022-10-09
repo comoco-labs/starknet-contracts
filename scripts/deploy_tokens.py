@@ -4,6 +4,7 @@ import os
 
 from starknet_py.contract import Contract
 from starknet_py.net import AccountClient
+from starknet_py.net.gateway_client import GatewayClient
 from starkware.starknet.public.abi import AbiType
 from starkware.starknet.public.abi import get_selector_from_name
 
@@ -15,7 +16,6 @@ from common import (
     deploy_contract,
     get_abi,
     parse_arguments,
-    replace_abi,
     write_contract
 )
 
@@ -86,32 +86,33 @@ TOKENS_CONFIG = {
 
 
 async def deploy_token_contract(
+    gateway_client: GatewayClient,
     account_clients: dict[str, AccountClient],
     compiled_proxy_contract: str,
     token_abi: AbiType,
-    token_class: int,
-    license_class: int,
-    registry_contract: Contract,
+    token_class_hash: int,
+    license_class_hash: int,
+    registry_contract_address: int,
     config: dict
 ) -> Contract:
-    token_contract = await deploy_contract(
-        account_clients['comoco_admin'],
+    token_contract_address = await deploy_contract(
+        gateway_client,
         compiled_proxy_contract,
         [
-            token_class,
+            token_class_hash,
             INITIALIZER_SELECTOR,
             [
                 account_clients['comoco_dev'].address,
                 config['name'],
                 config['symbol'],
                 account_clients['comoco_admin'].address,
-                license_class,
-                registry_contract.address
+                license_class_hash,
+                registry_contract_address
             ]
-        ]
+        ],
+        wait_for_accept=True
     )
-    token_contract = replace_abi(token_contract, token_abi)
-    return token_contract
+    return Contract(token_contract_address, token_abi, account_clients['comoco_admin'])
 
 
 async def setup_token_contract(
@@ -136,7 +137,7 @@ async def setup_token_contract(
         calls.append(token_contract.functions['setCollectionArraySettings'].prepare(
             'royalties', [account_clients['comoco_bank'].address, config['royalties']]))
     if calls:
-        resp = await account_clients['comoco_admin'].execute(calls=calls, max_fee=MAX_FEE)
+        resp = await account_clients['comoco_admin'].execute(calls=calls, max_fee=MAX_FEE * len(calls))
         await account_clients['comoco_admin'].wait_for_tx(resp.transaction_hash)
 
 
@@ -147,38 +148,40 @@ async def main():
         help='The address of the deployed TokenRegistry contract'
     )
     args = parse_arguments(parser)
-    _, account_clients = create_clients(args)
 
-    print("Declaring DerivativeToken class...")
-    compiled_token_contract = compile_contract(TOKEN_FILE)
-    token_class = await declare_contract(
-        account_clients['comoco_dev'],
-        compiled_token_contract
-    )
-    write_contract(args.output_file, 'Token Class', token_class)
-
-    print("Declaring DerivativeLicense class...")
-    license_class = await declare_contract(
-        account_clients['comoco_dev'],
-        compile_contract(LICENSE_FILE)
-    )
-    write_contract(args.output_file, 'License Class', license_class)
-
+    gateway_client, account_clients = create_clients(args)
     registry_contract = Contract(
         args.registry_address,
         get_abi(compile_contract(REGISTRY_FILE)),
         account_clients['comoco_registrar']
     )
 
+    print("Declaring DerivativeToken class...")
+    compiled_token_contract = compile_contract(TOKEN_FILE)
+    token_class_hash = await declare_contract(
+        gateway_client,
+        account_clients['comoco_dev'],
+        compiled_token_contract
+    )
+    write_contract('Token Class', token_class_hash)
+
+    print("Declaring DerivativeLicense class...")
+    license_class_hash = await declare_contract(
+        gateway_client,
+        account_clients['comoco_dev'],
+        compile_contract(LICENSE_FILE)
+    )
+    write_contract('License Class', license_class_hash)
+
     compiled_proxy_contract = compile_contract(PROXY_FILE)
     token_abi = get_abi(compiled_token_contract)
     for token, config in TOKENS_CONFIG.items():
         print(f"Deploying DerivativeToken contract for {token}...")
         token_contract = await deploy_token_contract(
-            account_clients, compiled_proxy_contract, token_abi,
-            token_class, license_class, registry_contract, config
+            gateway_client, account_clients, compiled_proxy_contract, token_abi,
+            token_class_hash, license_class_hash, registry_contract.address, config
         )
-        write_contract(args.output_file, token + ' Contract', token_contract.address)
+        write_contract(token + ' Contract', token_contract.address)
 
         print(f"Setting up DerivativeToken contract for {token}...")
         await setup_token_contract(

@@ -31,7 +31,7 @@ async def batch_mint(
     to_id: int
 ):
     print(f"Minting tokens from {from_id} to {to_id} at DerivativeToken...")
-    resp = await account_client.execute(calls=calls, max_fee=MAX_FEE * BATCH_SIZE)
+    resp = await account_client.execute(calls=calls, max_fee=MAX_FEE * len(calls))
     try:
         await account_client.wait_for_tx(resp.transaction_hash)
     except TransactionFailedError as e:

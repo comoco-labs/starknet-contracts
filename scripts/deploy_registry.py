@@ -30,18 +30,19 @@ async def main():
     gateway_client, account_clients = create_clients(args)
 
     print("Declaring TokenRegistry class...")
-    registry_class = await declare_contract(
+    registry_class_hash = await declare_contract(
+        gateway_client,
         account_clients['comoco_dev'],
         compile_contract(REGISTRY_FILE)
     )
-    write_contract(args.output_file, 'Registry Class', registry_class)
+    write_contract('Registry Class', registry_class_hash)
 
     print("Deploying TokenRegistry contract...")
-    registry_contract = await deploy_contract(
+    registry_contract_address = await deploy_contract(
         gateway_client,
         compile_contract(PROXY_FILE),
         [
-            registry_class,
+            registry_class_hash,
             INITIALIZER_SELECTOR,
             [
                 account_clients['comoco_dev'].address,
@@ -50,7 +51,7 @@ async def main():
         ],
         wait_for_accept=True
     )
-    write_contract(args.output_file, 'Registry Contract', registry_contract.address)
+    write_contract('Registry Contract', registry_contract_address)
 
 
 if __name__ == '__main__':

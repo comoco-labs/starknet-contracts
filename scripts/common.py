@@ -6,11 +6,11 @@ from typing import Optional, Union
 from starknet_py.compile.compiler import create_contract_class, starknet_compile
 from starknet_py.contract import Contract
 from starknet_py.net import AccountClient, KeyPair
-from starknet_py.net.client import Client
 from starknet_py.net.gateway_client import GatewayClient
 from starknet_py.net.models.chains import StarknetChainId
 from starknet_py.net.networks import TESTNET, MAINNET
 from starknet_py.transactions.declare import make_declare_tx
+from starknet_py.transactions.deploy import make_deploy_tx
 from starkware.starknet.public.abi import AbiType
 
 
@@ -33,13 +33,15 @@ ACCOUNT_NAMES = (
     'comoco_admin'
 )
 
-TX_VERSION = 1
+MAX_FEE = int(1e14)
 
-MAX_FEE = int(1e16)
+tx_version = 1
+deploy_token = None
+output_file = 'deployments.txt'
 
 
 def parse_arguments(parser: argparse.ArgumentParser):
-    global TX_VERSION
+    global tx_version, deploy_token, output_file
     parser.add_argument(
         '--network', dest='network', default='devnet',
         help='The name of the StarkNet network'
@@ -49,21 +51,27 @@ def parse_arguments(parser: argparse.ArgumentParser):
         help='The json file containing the accounts info'
     )
     parser.add_argument(
-        '--tx_version', dest='tx_version', default=TX_VERSION, type=int,
+        '--version', dest='tx_version', default=tx_version, type=int,
         help='The version of the transaction to send in'
     )
     parser.add_argument(
-        '--output', dest='output_file', default='deployments.txt',
+        '--token', dest='deploy_token', default=deploy_token,
+        help='The token allowing contract deployment for alpha-mainnet'
+    )
+    parser.add_argument(
+        '--output', dest='output_file', default=output_file,
         help='The txt file to output the deployed contract addresses'
     )
     args = parser.parse_args()
-    TX_VERSION = args.tx_version
+    tx_version = args.tx_version
+    deploy_token = args.deploy_token
+    output_file = args.output_file
     return args
 
 
 def _setup_accounts(
     network: str,
-    client: Client,
+    gateway_client: GatewayClient,
     accounts: Union[dict, list]
 ) -> dict[str, AccountClient]:
     if isinstance(accounts, list):
@@ -73,11 +81,11 @@ def _setup_accounts(
     account_clients = {}
     for account_name, account_info in accounts.items():
         account_client = AccountClient(
-            client=client,
+            client=gateway_client,
             address=account_info['address'],
             key_pair=KeyPair.from_private_key(int(account_info['private_key'], 0)),
             chain=CHAIN_IDS[network],
-            supported_tx_version=TX_VERSION
+            supported_tx_version=tx_version
         )
         account_clients[account_name] = account_client
     return account_clients
@@ -102,40 +110,37 @@ def get_abi(compiled_contract: str) -> AbiType:
     return create_contract_class(compiled_contract=compiled_contract).abi
 
 
-def replace_abi(contract: Contract, abi: AbiType) -> Contract:
-    return Contract(contract.address, abi, contract.client)
-
-
 async def declare_contract(
-    account_client: AccountClient, compiled_contract: str
+    gateway_client: GatewayClient,
+    account_client: AccountClient,
+    compiled_contract: str,
 ) -> int:
-    if TX_VERSION == 0:
+    if tx_version == 0:
         tx = make_declare_tx(compiled_contract=compiled_contract)
     else:
         tx = await account_client.sign_declare_transaction(
             compiled_contract=compiled_contract,
             max_fee=MAX_FEE
         )
-    resp = await account_client.declare(tx)
+    resp = await gateway_client.declare(tx, deploy_token)
     return resp.class_hash
 
 
 async def deploy_contract(
-    client: Client, compiled_contract: str, constructor_args: list,
+    gateway_client: GatewayClient,
+    compiled_contract: str,
+    constructor_args: list,
     wait_for_accept: Optional[bool] = False
-) -> Contract:
-    res = await Contract.deploy(
-        client=client,
-        compiled_contract=compiled_contract,
-        constructor_args=constructor_args
-    )
+) -> int:
+    compiled = create_contract_class(compiled_contract)
+    translated_args = Contract._translate_constructor_args(compiled, constructor_args)
+    tx = make_deploy_tx(compiled_contract=compiled, constructor_calldata=translated_args)
+    res = await gateway_client.deploy(tx, deploy_token)
     if wait_for_accept:
-        await res.wait_for_acceptance()
-    return res.deployed_contract
+        await gateway_client.wait_for_tx(res.transaction_hash)
+    return res.contract_address
 
 
-def write_contract(
-    file: str, name: str, hash: int
-):
-    with open(file, 'a') as f:
+def write_contract(name: str, hash: int):
+    with open(output_file, 'a') as f:
         f.write(f"{name}: 0x{hash:x}\n")
