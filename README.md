@@ -56,11 +56,11 @@ or
 
         {
             "testnet": {
-                "comoco_deployer": {
+                "comoco_dev": {
                     "address": "0x0111111111111111111111111111111111111111111111111111111111111111",
                     "private_key": "0xABCDEF"  # Can be in hex
                 },
-                "comoco_upgrader": {
+                "comoco_bank": {
                     "address": "0x0222222222222222222222222222222222222222222222222222222222222222",
                     "private_key": "12345678"  # or in decimal
                 },
@@ -68,12 +68,6 @@ or
                     ...
                 },
                 "comoco_admin": {
-                    ...
-                },
-                "comoco_receiver": {
-                    ...
-                },
-                "comoco_agent": {
                     ...
                 }
             },
@@ -86,8 +80,7 @@ or
 
     Use the [faucet](https://faucet.goerli.starknet.io) for testnet, or other means for mainnet, to fund the following accounts:
 
-    - comoco_deployer
-    - comoco_upgrader
+    - comoco_dev
     - comoco_registrar
     - comoco_admin
 
@@ -95,4 +88,7 @@ or
 
     Run the same commands as in devnet with the following extra flags:
 
-        --network testnet|mainnet --accounts_file /path/to/accounts/file.json
+        --network testnet|mainnet
+        --accounts_file /path/to/accounts/file.json
+        [--version 0]  # For old accounts supporting only transaction version 0
+        [--token ...]  # Obtained from application for alpha-mainnet deployment
