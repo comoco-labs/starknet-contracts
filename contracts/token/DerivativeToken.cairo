@@ -21,6 +21,7 @@ from contracts.registry.interface import ITokenRegistry
 from contracts.token.interface import IDerivativeToken
 from contracts.token.metadata.authorable import Authorable
 from contracts.token.metadata.derivable import Derivable
+from contracts.token.metadata.extension import ERC721Ext
 from contracts.token.upgrades.license import LicenseProxy
 from contracts.token.upgrades.registry import RegistryProxy
 
@@ -171,10 +172,15 @@ func isApprovedForAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
 func tokenURI{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenId: Uint256
 ) -> (
-        tokenURI: felt
+        tokenURI_len: felt,
+        tokenURI: felt*
 ) {
-    let (tokenURI) = ERC721.token_uri(tokenId);
-    return (tokenURI=tokenURI);
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
+    let (tokenURI_len, tokenURI) = ERC721Ext.token_uri(tokenId);
+    return (tokenURI_len=tokenURI_len, tokenURI=tokenURI);
 }
 
 @view
@@ -529,10 +535,15 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 @external
 func setTokenURI{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenId: Uint256,
-        tokenURI: felt
+        tokenURI_len: felt,
+        tokenURI: felt*
 ) {
     assert_only_owner_or_admin();
-    ERC721._set_token_uri(tokenId, tokenURI);
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: set for nonexistent token") {
+        assert exists = TRUE;
+    }
+    ERC721Ext.set_token_uri(tokenId, tokenURI_len, tokenURI);
     return ();
 }
 

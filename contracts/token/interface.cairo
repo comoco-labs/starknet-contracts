@@ -31,7 +31,7 @@ namespace IDerivativeToken {
 //  func symbol() -> (symbol: felt) {
 //  }
 
-//  func tokenURI(tokenId: Uint256) -> (tokenURI: felt) {
+//  func tokenURI(tokenId: Uint256) -> (tokenURI_len: felt, tokenURI: felt*) {
 //  }
 
 //  func balanceOf(owner: felt) -> (balance: Uint256) {
@@ -61,7 +61,7 @@ namespace IDerivativeToken {
 //  func mint(to: felt, tokenId: Uint256, parentTokens_len: felt, parentTokens: Token*) {
 //  }
 
-//  func setTokenURI(tokenId: Uint256, tokenURI: felt) {
+//  func setTokenURI(tokenId: Uint256, tokenURI_len: felt, tokenURI: felt*) {
 //  }
 
 //
