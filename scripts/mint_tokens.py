@@ -10,15 +10,14 @@ from starknet_py.transaction_exceptions import TransactionFailedError
 
 from common import (
     MAX_FEE,
-    compile_contract,
     create_clients,
-    get_abi,
+    load_abi,
     parse_arguments,
 )
 
 
-TOKEN_FILE = os.path.join(
-    'contracts', 'token', 'DerivativeToken.cairo'
+TOKEN_ABI_FILE = os.path.join(
+    'artifacts', 'abis', 'DerivativeToken.json'
 )
 
 BATCH_SIZE = 100
@@ -85,7 +84,7 @@ async def main():
     _, account_clients = create_clients(args)
     token_contract = Contract(
         args.token_address,
-        get_abi(compile_contract(TOKEN_FILE)),
+        load_abi(TOKEN_ABI_FILE),
         account_clients['comoco_admin']
     )
     parent_token_addresses = args.parent_token_addresses or []

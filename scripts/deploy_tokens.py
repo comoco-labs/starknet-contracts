@@ -10,27 +10,31 @@ from starkware.starknet.public.abi import get_selector_from_name
 
 from common import (
     MAX_FEE,
-    compile_contract,
     create_clients,
     declare_contract,
     deploy_contract,
-    get_abi,
+    load_abi,
+    load_compiled_contract,
     parse_arguments,
-    write_contract
+    save_hash
 )
 
 
-PROXY_FILE = os.path.join(
-    'contracts', 'proxy', 'Proxy.cairo'
+COMPILED_PROXY_FILE = os.path.join(
+    'artifacts', 'Proxy.json'
 )
-REGISTRY_FILE = os.path.join(
-    'contracts', 'registry', 'TokenRegistry.cairo'
+COMPILED_TOKEN_FILE = os.path.join(
+    'artifacts', 'DerivativeToken.json'
 )
-TOKEN_FILE = os.path.join(
-    'contracts', 'token', 'DerivativeToken.cairo'
+COMPILED_LICENSE_FILE = os.path.join(
+    'artifacts', 'DerivativeLicense.json'
 )
-LICENSE_FILE = os.path.join(
-    'contracts', 'license', 'DerivativeLicense.cairo'
+
+REGISTRY_ABI_FILE = os.path.join(
+    'artifacts', 'abis', 'TokenRegistry.json'
+)
+TOKEN_ABI_FILE = os.path.join(
+    'artifacts', 'abis', 'DerivativeToken.json'
 )
 
 INITIALIZER_SELECTOR = get_selector_from_name('initializer')
@@ -152,36 +156,35 @@ async def main():
     gateway_client, account_clients = create_clients(args)
     registry_contract = Contract(
         args.registry_address,
-        get_abi(compile_contract(REGISTRY_FILE)),
+        load_abi(REGISTRY_ABI_FILE),
         account_clients['comoco_registrar']
     )
 
     print("Declaring DerivativeToken class...")
-    compiled_token_contract = compile_contract(TOKEN_FILE)
     token_class_hash = await declare_contract(
         gateway_client,
         account_clients['comoco_dev'],
-        compiled_token_contract
+        load_compiled_contract(COMPILED_TOKEN_FILE)
     )
-    write_contract('Token Class', token_class_hash)
+    save_hash('Token Class', token_class_hash)
 
     print("Declaring DerivativeLicense class...")
     license_class_hash = await declare_contract(
         gateway_client,
         account_clients['comoco_dev'],
-        compile_contract(LICENSE_FILE)
+        load_compiled_contract(COMPILED_LICENSE_FILE)
     )
-    write_contract('License Class', license_class_hash)
+    save_hash('License Class', license_class_hash)
 
-    compiled_proxy_contract = compile_contract(PROXY_FILE)
-    token_abi = get_abi(compiled_token_contract)
+    compiled_proxy_contract = load_compiled_contract(COMPILED_PROXY_FILE)
+    token_abi = load_abi(TOKEN_ABI_FILE)
     for token, config in TOKENS_CONFIG.items():
         print(f"Deploying DerivativeToken contract for {token}...")
         token_contract = await deploy_token_contract(
             gateway_client, account_clients, compiled_proxy_contract, token_abi,
             token_class_hash, license_class_hash, registry_contract.address, config
         )
-        write_contract(token + ' Contract', token_contract.address)
+        save_hash(token + ' Contract', token_contract.address)
 
         print(f"Setting up DerivativeToken contract for {token}...")
         await setup_token_contract(

@@ -3,7 +3,7 @@ import json
 import pathlib
 from typing import Optional, Union
 
-from starknet_py.compile.compiler import create_contract_class, starknet_compile
+from starknet_py.compile.compiler import create_contract_class
 from starknet_py.contract import Contract
 from starknet_py.net import AccountClient, KeyPair
 from starknet_py.net.gateway_client import GatewayClient
@@ -102,12 +102,18 @@ def create_clients(args) -> tuple[GatewayClient, dict[str, AccountClient]]:
     return gateway_client, account_clients
 
 
-def compile_contract(contract_file: str) -> str:
-    return starknet_compile(source=[contract_file])
+def load_compiled_contract(compiled_file: str) -> str:
+    return pathlib.Path(compiled_file).read_text()
 
 
-def get_abi(compiled_contract: str) -> AbiType:
-    return create_contract_class(compiled_contract=compiled_contract).abi
+def load_abi(abi_file: str) -> AbiType:
+    with open(abi_file, 'r') as f:
+        return json.load(f)
+
+
+def save_hash(name: str, hash: int):
+    with open(output_file, 'a') as f:
+        f.write(f"{name}: 0x{hash:x}\n")
 
 
 async def declare_contract(
@@ -139,8 +145,3 @@ async def deploy_contract(
     if wait_for_accept:
         await gateway_client.wait_for_tx(res.transaction_hash)
     return res.contract_address
-
-
-def write_contract(name: str, hash: int):
-    with open(output_file, 'a') as f:
-        f.write(f"{name}: 0x{hash:x}\n")

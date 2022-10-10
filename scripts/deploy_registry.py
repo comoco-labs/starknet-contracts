@@ -5,20 +5,20 @@ import os
 from starkware.starknet.public.abi import get_selector_from_name
 
 from common import (
-    compile_contract,
     create_clients,
     declare_contract,
     deploy_contract,
+    load_compiled_contract,
     parse_arguments,
-    write_contract
+    save_hash
 )
 
 
-PROXY_FILE = os.path.join(
-    'contracts', 'proxy', 'Proxy.cairo'
+COMPILED_PROXY_FILE = os.path.join(
+    'artifacts', 'Proxy.json'
 )
-REGISTRY_FILE = os.path.join(
-    'contracts', 'registry', 'TokenRegistry.cairo'
+COMPILED_REGISTRY_FILE = os.path.join(
+    'artifacts', 'TokenRegistry.json'
 )
 
 INITIALIZER_SELECTOR = get_selector_from_name('initializer')
@@ -33,14 +33,14 @@ async def main():
     registry_class_hash = await declare_contract(
         gateway_client,
         account_clients['comoco_dev'],
-        compile_contract(REGISTRY_FILE)
+        load_compiled_contract(COMPILED_REGISTRY_FILE)
     )
-    write_contract('Registry Class', registry_class_hash)
+    save_hash('Registry Class', registry_class_hash)
 
     print("Deploying TokenRegistry contract...")
     registry_contract_address = await deploy_contract(
         gateway_client,
-        compile_contract(PROXY_FILE),
+        load_compiled_contract(COMPILED_PROXY_FILE),
         [
             registry_class_hash,
             INITIALIZER_SELECTOR,
@@ -51,7 +51,7 @@ async def main():
         ],
         wait_for_accept=True
     )
-    write_contract('Registry Contract', registry_contract_address)
+    save_hash('Registry Contract', registry_contract_address)
 
 
 if __name__ == '__main__':
