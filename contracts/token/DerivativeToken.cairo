@@ -542,6 +542,10 @@ func setAuthor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         author: felt
 ) {
     assert_only_token_author(tokenId);
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: set for nonexistent token") {
+        assert exists = TRUE;
+    }
     Authorable.set_author(tokenId, author);
     return ();
 }
