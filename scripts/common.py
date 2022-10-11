@@ -33,8 +33,6 @@ ACCOUNT_NAMES = (
     'comoco_admin'
 )
 
-MAX_FEE = int(1e14)
-
 tx_version = 1
 deploy_token = None
 output_file = 'deployments.txt'
@@ -126,7 +124,7 @@ async def declare_contract(
     else:
         tx = await account_client.sign_declare_transaction(
             compiled_contract=compiled_contract,
-            max_fee=MAX_FEE
+            auto_estimate=True
         )
     resp = await gateway_client.declare(tx, deploy_token)
     return resp.class_hash
@@ -140,7 +138,11 @@ async def deploy_contract(
 ) -> int:
     compiled = create_contract_class(compiled_contract)
     translated_args = Contract._translate_constructor_args(compiled, constructor_args)
-    tx = make_deploy_tx(compiled_contract=compiled, constructor_calldata=translated_args)
+    tx = make_deploy_tx(
+        compiled_contract=compiled,
+        constructor_calldata=translated_args,
+        version=tx_version
+    )
     res = await gateway_client.deploy(tx, deploy_token)
     if wait_for_accept:
         await gateway_client.wait_for_tx(res.transaction_hash)

@@ -9,7 +9,6 @@ from starkware.starknet.public.abi import AbiType
 from starkware.starknet.public.abi import get_selector_from_name
 
 from common import (
-    MAX_FEE,
     create_clients,
     declare_contract,
     deploy_contract,
@@ -127,7 +126,7 @@ async def setup_token_contract(
 ):
     if 'l1_addr' in config:
         invocation = await registry_contract.functions['setMappingInfoForAddresses'].invoke(
-            config['l1_addr'], token_contract.address, 1, max_fee=MAX_FEE)
+            config['l1_addr'], token_contract.address, 1, auto_estimate=True)
         await invocation.wait_for_acceptance()
 
     calls = []
@@ -141,7 +140,7 @@ async def setup_token_contract(
         calls.append(token_contract.functions['setCollectionArraySettings'].prepare(
             'royalties', [account_clients['comoco_bank'].address, config['royalties']]))
     if calls:
-        resp = await account_clients['comoco_admin'].execute(calls=calls, max_fee=MAX_FEE * len(calls))
+        resp = await account_clients['comoco_admin'].execute(calls=calls, auto_estimate=True)
         await account_clients['comoco_admin'].wait_for_tx(resp.transaction_hash)
 
 
