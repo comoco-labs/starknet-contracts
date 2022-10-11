@@ -50,7 +50,8 @@ async def mint_tokens(
         calls.append(token_contract.functions['mint'].prepare(
             account_clients['comoco_admin'].address,
             id,
-            [{'collection': int(addr, 0), 'id': id} for addr in parent_token_addresses]))
+            [{'collection': int(addr, 0), 'id': id} for addr in parent_token_addresses],
+            []))
         if len(calls) == BATCH_SIZE:
             await batch_mint(account_clients['comoco_admin'], calls, batch_start_id, id)
             batch_start_id = id + 1

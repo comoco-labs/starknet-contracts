@@ -58,7 +58,7 @@ namespace IDerivativeToken {
 //  func isApprovedForAll(owner: felt, operator: felt) -> (isApproved: felt) {
 //  }
 
-//  func mint(to: felt, tokenId: Uint256, parentTokens_len: felt, parentTokens: Token*) {
+//  func mint(to: felt, tokenId: Uint256, parentTokens_len: felt, parentTokens: Token*, tokenURI_len: felt, tokenURI: felt*) {
 //  }
 
 //  func setTokenURI(tokenId: Uint256, tokenURI_len: felt, tokenURI: felt*) {
@@ -75,6 +75,9 @@ namespace IDerivativeToken {
 //  }
 
 //  func parentTokensOf(tokenId: Uint256) -> (parentTokens_len: felt, parentTokens: Token*) {
+//  }
+
+//  func setParentTokens(tokenId: Uint256, parentTokens_len: felt, parentTokens: Token*) {
 //  }
 
 //

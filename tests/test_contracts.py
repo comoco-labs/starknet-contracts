@@ -137,7 +137,7 @@ async def test_DerivativeToken_access(contracts_factory):
 async def test_DerivativeToken_royalties(contracts_factory):
     _, token_contract = contracts_factory
 
-    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, []).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, [], []).execute(caller_address=COLLECTION_OWNER_ADDRESS)
     execution_info = await token_contract.ownerOf(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == (ORIGINAL_TOKEN_OWNER_ADDRESS,)
     execution_info = await token_contract.authorOf(ORIGINAL_TOKEN_ID).call()
@@ -163,9 +163,11 @@ async def test_DerivativeToken_royalties(contracts_factory):
 async def test_DerivativeToken_mint(contracts_factory):
     _, token_contract = contracts_factory
 
-    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, []).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, [], [str_to_felt('ipfs://'), str_to_felt('<CID>')]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
     execution_info = await token_contract.parentTokensOf(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == ([],)
+    execution_info = await token_contract.tokenURI(ORIGINAL_TOKEN_ID).call()
+    assert execution_info.result == ([str_to_felt('ipfs://'), str_to_felt('<CID>')],)
 
     execution_info = await token_contract.allowToMint(ORIGINAL_TOKEN_ID, ORIGINAL_TOKEN_OWNER_ADDRESS).call()
     assert execution_info.result == (1,)
@@ -173,14 +175,14 @@ async def test_DerivativeToken_mint(contracts_factory):
     assert execution_info.result == (0,)
 
     await assert_revert(
-        token_contract.mint(DERIVED_TOKEN_OWNER_ADDRESS, DERIVED_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS),
+        token_contract.mint(DERIVED_TOKEN_OWNER_ADDRESS, DERIVED_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)], []).execute(caller_address=COLLECTION_OWNER_ADDRESS),
         reverted_with="not licensed")
 
     await token_contract.setTokenArraySettings(ORIGINAL_TOKEN_ID, str_to_felt('licensees'), [DERIVED_TOKEN_OWNER_ADDRESS]).execute(caller_address=ORIGINAL_TOKEN_OWNER_ADDRESS)
     execution_info = await token_contract.allowToMint(ORIGINAL_TOKEN_ID, DERIVED_TOKEN_OWNER_ADDRESS).call()
     assert execution_info.result == (1,)
 
-    await token_contract.mint(DERIVED_TOKEN_OWNER_ADDRESS, DERIVED_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    await token_contract.mint(DERIVED_TOKEN_OWNER_ADDRESS, DERIVED_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)], []).execute(caller_address=COLLECTION_OWNER_ADDRESS)
     execution_info = await token_contract.parentTokensOf(DERIVED_TOKEN_ID).call()
     assert execution_info.result == ([(token_contract.contract_address, ORIGINAL_TOKEN_ID)],)
 
@@ -189,8 +191,8 @@ async def test_DerivativeToken_mint(contracts_factory):
 async def test_DerivativeToken_transfer(contracts_factory):
     _, token_contract = contracts_factory
 
-    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, []).execute(caller_address=COLLECTION_OWNER_ADDRESS)
-    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, DERIVED_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)]).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, ORIGINAL_TOKEN_ID, [], []).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    await token_contract.mint(ORIGINAL_TOKEN_OWNER_ADDRESS, DERIVED_TOKEN_ID, [(token_contract.contract_address, ORIGINAL_TOKEN_ID)], []).execute(caller_address=COLLECTION_OWNER_ADDRESS)
 
     execution_info = await token_contract.allowToTransfer(ORIGINAL_TOKEN_ID).call()
     assert execution_info.result == (1,)
