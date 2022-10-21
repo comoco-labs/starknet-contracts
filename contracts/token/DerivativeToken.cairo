@@ -471,6 +471,10 @@ func transferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
         with_attr error_message("DerivativeToken: caller is not authorized to transfer") {
             assert authorized = TRUE;
         }
+        let sot = _get_sot();
+        with_attr error_message("DerivativeToken: cannot transfer L1 sourced token") {
+            assert_not_equal(sot, 1);
+        }
         let (authorized) = allowTransfer(tokenId);
         with_attr error_message("DerivativeToken: token is not licensed to transfer") {
             assert authorized = TRUE;
@@ -496,6 +500,10 @@ func safeTransferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         with_attr error_message("DerivativeToken: caller is not authorized to transfer") {
             assert authorized = TRUE;
         }
+        let sot = _get_sot();
+        with_attr error_message("DerivativeToken: cannot transfer L1 sourced token") {
+            assert_not_equal(sot, 1);
+        }
         let (authorized) = allowTransfer(tokenId);
         with_attr error_message("DerivativeToken: token is not licensed to transfer") {
             assert authorized = TRUE;
@@ -515,9 +523,7 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenURI: felt*
 ) {
     assert_only_owner_or_admin();
-    let (registry) = RegistryProxy.registry();
-    let (contract) = get_contract_address();
-    let (_, sot) = ITokenRegistry.getMappingInfoForL2Address(registry, contract);
+    let sot = _get_sot();
     if (sot == 1) {
         with_attr error_message("DerivativeToken: cannot set parent tokens when minting L1 sourced token") {
             assert parentTokens_len = 0;
@@ -781,6 +787,14 @@ func _is_author_of{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     } else {
         return FALSE;
     }
+}
+
+func _get_sot{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+) -> felt {
+    let (registry) = RegistryProxy.registry();
+    let (contract) = get_contract_address();
+    let (_, sot) = ITokenRegistry.getMappingInfoForL2Address(registry, contract);
+    return sot;
 }
 
 func _allow_transfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
