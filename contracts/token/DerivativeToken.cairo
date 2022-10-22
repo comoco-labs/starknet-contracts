@@ -464,9 +464,15 @@ func transferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
         tokenId: Uint256
 ) {
     alloc_locals;
+    with_attr error_message("DerivativeToken: tokenId is not a valid Uint256") {
+        uint256_check(tokenId);
+    }
     let (caller) = get_caller_address();
-    let authorized = _is_owner_or_admin(caller);
-    if (authorized == FALSE) {
+    with_attr error_message("DerivativeToken: caller is the zero address") {
+        assert_not_zero(caller);
+    }
+    let privileged = _is_system_admin(caller);
+    if (privileged == FALSE) {
         let authorized = ERC721._is_approved_or_owner(caller, tokenId);
         with_attr error_message("DerivativeToken: caller is not authorized to transfer") {
             assert authorized = TRUE;
@@ -480,7 +486,7 @@ func transferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
             assert authorized = TRUE;
         }
     }
-    ERC721.transfer_from(from_, to, tokenId);
+    ERC721._transfer(from_, to, tokenId);
     return ();
 }
 
@@ -493,9 +499,15 @@ func safeTransferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         data: felt*
 ) {
     alloc_locals;
+    with_attr error_message("DerivativeToken: tokenId is not a valid Uint256") {
+        uint256_check(tokenId);
+    }
     let (caller) = get_caller_address();
-    let authorized = _is_owner_or_admin(caller);
-    if (authorized == FALSE) {
+    with_attr error_message("DerivativeToken: caller is the zero address") {
+        assert_not_zero(caller);
+    }
+    let privileged = _is_system_admin(caller);
+    if (privileged == FALSE) {
         let authorized = ERC721._is_approved_or_owner(caller, tokenId);
         with_attr error_message("DerivativeToken: caller is not authorized to transfer") {
             assert authorized = TRUE;
@@ -509,7 +521,7 @@ func safeTransferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
             assert authorized = TRUE;
         }
     }
-    ERC721.safe_transfer_from(from_, to, tokenId, data_len, data);
+    ERC721._safe_transfer(from_, to, tokenId, data_len, data);
     return ();
 }
 
@@ -523,12 +535,6 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenURI: felt*
 ) {
     assert_only_owner_or_admin();
-    let sot = _get_sot();
-    if (sot == 1) {
-        with_attr error_message("DerivativeToken: cannot set parent tokens when minting L1 sourced token") {
-            assert parentTokens_len = 0;
-        }
-    }
     let allowed = _allow_mint(to, parentTokens_len, parentTokens);
     with_attr error_message("DerivativeToken: not licensed by parent tokens") {
         assert allowed = TRUE;
@@ -765,6 +771,13 @@ func burn{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 //
 // Private
 //
+
+func _is_system_admin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        user: felt
+) -> felt {
+    let res = _is_owner_or_admin(user);
+    return res;
+}
 
 func _is_owner_or_admin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         user: felt
