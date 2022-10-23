@@ -37,7 +37,7 @@ async def batch_mint(
 
 
 async def mint_tokens(
-    account_clients: dict[str, AccountClient],
+    account_client: AccountClient,
     token_contract: Contract,
     start_id: int,
     total_num: int,
@@ -48,17 +48,18 @@ async def mint_tokens(
     calls = []
     while id < start_id + total_num:
         calls.append(token_contract.functions['mint'].prepare(
-            account_clients['comoco_admin'].address,
+            account_client.address,
             id,
             [{'collection': int(addr, 0), 'id': id} for addr in parent_token_addresses],
-            []))
+            []
+        ))
         if len(calls) == BATCH_SIZE:
-            await batch_mint(account_clients['comoco_admin'], calls, batch_start_id, id)
+            await batch_mint(account_client, calls, batch_start_id, id)
             batch_start_id = id + 1
             calls.clear()
         id += 1
     if calls:
-        await batch_mint(account_clients['comoco_admin'], calls, batch_start_id, id - 1)
+        await batch_mint(account_client, calls, batch_start_id, id - 1)
 
 
 async def main():
@@ -89,7 +90,7 @@ async def main():
     )
     parent_token_addresses = args.parent_token_addresses or []
     await mint_tokens(
-        account_clients,
+        account_clients['comoco_admin'],
         token_contract,
         args.start_id,
         args.total_num,
