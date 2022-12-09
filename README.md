@@ -1,4 +1,4 @@
-# cairo-contracts
+# starknet-contracts
 
 Smart contracts for Comoco Licensor in StarkNet
 
