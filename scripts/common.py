@@ -28,9 +28,8 @@ CHAIN_IDS = {
 
 ACCOUNT_NAMES = (
     'comoco_dev',
-    'comoco_bank',
-    'comoco_registrar',
-    'comoco_admin'
+    'comoco_admin',
+    'comoco_bank'
 )
 
 tx_version = 1

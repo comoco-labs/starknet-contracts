@@ -60,14 +60,11 @@ or
                     "address": "0x0111111111111111111111111111111111111111111111111111111111111111",
                     "private_key": "0xABCDEF"  # Can be in hex
                 },
-                "comoco_bank": {
+                "comoco_admin": {
                     "address": "0x0222222222222222222222222222222222222222222222222222222222222222",
                     "private_key": "12345678"  # or in decimal
                 },
-                "comoco_registrar": {
-                    ...
-                },
-                "comoco_admin": {
+                "comoco_bank": {
                     ...
                 }
             },
@@ -81,7 +78,6 @@ or
     Use the [faucet](https://faucet.goerli.starknet.io) for testnet, or other means for mainnet, to fund the following accounts:
 
     - comoco_dev
-    - comoco_registrar
     - comoco_admin
 
 3. Deploy the contracts

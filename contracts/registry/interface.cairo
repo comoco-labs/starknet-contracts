@@ -9,36 +9,17 @@ namespace ITokenRegistry {
 //  Initializer
 //
 
-//  func initializer(proxyAdmin: felt, owner: felt) {
+//  func initializer(proxyAdmin: felt) {
 //  }
 
 //
 //  Registry
 //
 
-    func getMappingInfoForL1Address(l1Addr: felt) -> (l2Addr: felt, sot: felt) {
+    func getPrimaryTokenAddress(secondaryAddr: felt) -> (primaryAddr: felt) {
     }
 
-    func getMappingInfoForL2Address(l2Addr: felt) -> (l1Addr: felt, sot: felt) {
-    }
-
-    func getMappingInfoForAddresses(l1Addr: felt, l2Addr: felt) -> (sot: felt) {
-    }
-
-//  func setMappingInfoForAddresses(l1Addr: felt, l2Addr: felt, sot: felt) {
-//  }
-
-//  func clearMappingInfoForAddresses(l1Addr: felt, l2Addr: felt) {
-//  }
-
-//
-//  Access
-//
-
-//  func owner() -> (owner: felt) {
-//  }
-
-//  func transferOwnership(newOwner: felt) {
+//  func setPrimaryTokenAddress(secondaryAddr: felt, newPrimaryAddr: felt) {
 //  }
 
 //
@@ -58,6 +39,20 @@ namespace ITokenRegistry {
 //  }
 
 //  func setProxyAdmin(newAdmin: felt) {
+//  }
+
+}
+
+@contract_interface
+namespace IOwner {
+
+    func owner() -> (owner: felt) {
+    }
+
+//  func transfer_ownership(new_owner: felt) {
+//  }
+
+//  func renounce_ownership() {
 //  }
 
 }

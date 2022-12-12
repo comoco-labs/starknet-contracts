@@ -42,7 +42,7 @@ TOKENS_CONFIG = {
     'BAYC': {
         'name': 'Bored Ape Yacht Club',
         'symbol': 'BAYC',
-        'l1_addr': 0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d,
+        'primary_addr': 0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d,
         'allow_transfer': 1,
         'drag_along': 1,
         'royalties': 500
@@ -65,7 +65,7 @@ TOKENS_CONFIG = {
     'DOODLE': {
         'name': 'Doodles',
         'symbol': 'DOODLE',
-        'l1_addr': 0x8a90cab2b38dba80c64b7734e58ee1db38b8992e,
+        'primary_addr': 0x8a90cab2b38dba80c64b7734e58ee1db38b8992e,
         'allow_transfer': 2,
         'drag_along': 1,
         'royalties': 500
@@ -124,9 +124,9 @@ async def setup_token_contract(
     token_contract: Contract,
     config: dict
 ):
-    if 'l1_addr' in config:
-        invocation = await registry_contract.functions['setMappingInfoForAddresses'].invoke(
-            config['l1_addr'], token_contract.address, 1, auto_estimate=True)
+    if 'primary_addr' in config:
+        invocation = await registry_contract.functions['setPrimaryTokenAddress'].invoke(
+            token_contract.address, config['primary_addr'], auto_estimate=True)
         await invocation.wait_for_acceptance()
 
     calls = []
@@ -156,7 +156,7 @@ async def main():
     registry_contract = Contract(
         args.registry_address,
         load_abi(REGISTRY_ABI_FILE),
-        account_clients['comoco_registrar']
+        account_clients['comoco_admin']
     )
 
     print("Declaring DerivativeToken class...")

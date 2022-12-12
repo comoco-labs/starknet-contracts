@@ -477,9 +477,9 @@ func transferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
         with_attr error_message("DerivativeToken: caller is not authorized to transfer") {
             assert authorized = TRUE;
         }
-        let sot = _get_sot();
-        with_attr error_message("DerivativeToken: cannot transfer L1 sourced token") {
-            assert_not_equal(sot, 1);
+        let secondary = _is_secondary_token();
+        with_attr error_message("DerivativeToken: cannot transfer secondary token") {
+            assert secondary = FALSE;
         }
         let (authorized) = allowTransfer(tokenId);
         with_attr error_message("DerivativeToken: token is not licensed to transfer") {
@@ -512,9 +512,9 @@ func safeTransferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         with_attr error_message("DerivativeToken: caller is not authorized to transfer") {
             assert authorized = TRUE;
         }
-        let sot = _get_sot();
-        with_attr error_message("DerivativeToken: cannot transfer L1 sourced token") {
-            assert_not_equal(sot, 1);
+        let secondary = _is_secondary_token();
+        with_attr error_message("DerivativeToken: cannot transfer secondary token") {
+            assert secondary = FALSE;
         }
         let (authorized) = allowTransfer(tokenId);
         with_attr error_message("DerivativeToken: token is not licensed to transfer") {
@@ -802,12 +802,16 @@ func _is_author_of{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     }
 }
 
-func _get_sot{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func _is_secondary_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 ) -> felt {
     let (registry) = RegistryProxy.registry();
     let (contract) = get_contract_address();
-    let (_, sot) = ITokenRegistry.getMappingInfoForL2Address(registry, contract);
-    return sot;
+    let (result) = ITokenRegistry.getPrimaryTokenAddress(registry, contract);
+    if (result == 0) {
+        return FALSE;
+    } else {
+        return TRUE;
+    }
 }
 
 func _allow_transfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(

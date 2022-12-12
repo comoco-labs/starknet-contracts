@@ -45,8 +45,7 @@ async def main():
             registry_class_hash,
             INITIALIZER_SELECTOR,
             [
-                account_clients['comoco_dev'].address,
-                account_clients['comoco_registrar'].address
+                account_clients['comoco_dev'].address
             ]
         ],
         wait_for_accept=True

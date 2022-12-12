@@ -8,9 +8,8 @@ from utils import assert_revert, str_to_felt, to_uint
 
 
 PROXY_ADMIN_ADDRESS = 0x1111111111111111111111111111111111111111
-REGISTRY_OWNER_ADDRESS = 0x2222222222222222222222222222222222222222
-COLLECTION_OWNER_ADDRESS = 0x3333333333333333333333333333333333333333
-COLLECTION_ADMIN_ADDRESS = 0x4444444444444444444444444444444444444444
+COLLECTION_OWNER_ADDRESS = 0x2222222222222222222222222222222222222222
+COLLECTION_ADMIN_ADDRESS = 0x3333333333333333333333333333333333333333
 
 PROXY_FILE = os.path.join('contracts', 'proxy', 'Proxy.cairo')
 REGISTRY_FILE = os.path.join('contracts', 'registry', 'TokenRegistry.cairo')
@@ -40,9 +39,8 @@ async def contracts_init():
         constructor_calldata=[
             registry_class.class_hash,
             INITIALIZER_SELECTOR,
-            2,
-            PROXY_ADMIN_ADDRESS,
-            REGISTRY_OWNER_ADDRESS
+            1,
+            PROXY_ADMIN_ADDRESS
         ]
     )
     registry_contract = registry_contract.replace_abi(registry_class.abi)
@@ -89,25 +87,19 @@ def contracts_factory(contracts_init):
 
 @pytest.mark.asyncio
 async def test_TokenRegistry(contracts_factory):
-    registry_contract, _ = contracts_factory
+    registry_contract, token_contract = contracts_factory
 
-    execution_info = await registry_contract.getMappingInfoForAddresses(0xDEADBEEF, 0xBADC0FFEE).call()
+    execution_info = await registry_contract.getPrimaryTokenAddress(token_contract.contract_address).call()
     assert execution_info.result == (0,)
 
     await assert_revert(
-        registry_contract.setMappingInfoForAddresses(0xDEADBEEF, 0xBADC0FFEE, 1).execute())
-    await registry_contract.setMappingInfoForAddresses(0xDEADBEEF, 0xBADC0FFEE, 1).execute(caller_address=REGISTRY_OWNER_ADDRESS)
-    execution_info = await registry_contract.getMappingInfoForL1Address(0xDEADBEEF).call()
-    assert execution_info.result == (0xBADC0FFEE, 1)
+        registry_contract.setPrimaryTokenAddress(token_contract.contract_address, 0xDEADBEEF).execute())
+    await registry_contract.setPrimaryTokenAddress(token_contract.contract_address, 0xDEADBEEF).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    execution_info = await registry_contract.getPrimaryTokenAddress(token_contract.contract_address).call()
+    assert execution_info.result == (0xDEADBEEF,)
 
-    await registry_contract.setMappingInfoForAddresses(0xDEADBEEF, 0xFEEDF00D, 2).execute(caller_address=REGISTRY_OWNER_ADDRESS)
-    execution_info = await registry_contract.getMappingInfoForL1Address(0xDEADBEEF).call()
-    assert execution_info.result == (0xFEEDF00D, 2)
-    execution_info = await registry_contract.getMappingInfoForL2Address(0xBADC0FFEE).call()
-    assert execution_info.result == (0, 0)
-
-    await registry_contract.clearMappingInfoForAddresses(0xDEADBEEF, 0xFEEDF00D).execute(caller_address=REGISTRY_OWNER_ADDRESS)
-    execution_info = await registry_contract.getMappingInfoForAddresses(0xDEADBEEF, 0xFEEDF00D).call()
+    await registry_contract.setPrimaryTokenAddress(token_contract.contract_address, 0).execute(caller_address=COLLECTION_OWNER_ADDRESS)
+    execution_info = await registry_contract.getPrimaryTokenAddress(token_contract.contract_address).call()
     assert execution_info.result == (0,)
 
 
