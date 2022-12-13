@@ -16,13 +16,12 @@ from openzeppelin.upgrades.library import Proxy
 
 from contracts.common.royalty import Royalty
 from contracts.common.token import Token
-from contracts.license.interface import IDerivativeLicense
 from contracts.registry.interface import ITokenRegistry
 from contracts.token.interface import IDerivativeToken
 from contracts.token.metadata.authorable import Authorable
 from contracts.token.metadata.derivable import Derivable
 from contracts.token.metadata.extension import ERC721Ext
-from contracts.token.upgrades.license import LicenseProxy
+from contracts.token.metadata.license import DerivativeLicense
 from contracts.token.upgrades.registry import RegistryProxy
 
 //
@@ -44,7 +43,6 @@ func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
         name: felt,
         symbol: felt,
         owner: felt,
-        license: felt,
         registry: felt
 ) {
     Proxy.initializer(proxyAdmin);
@@ -54,7 +52,6 @@ func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     AccessControl._set_role_admin(ADMIN_ROLE, OWNER_ROLE);
     AccessControl._set_role_admin(OWNER_ROLE, OWNER_ROLE);
     AccessControl._grant_role(OWNER_ROLE, owner);
-    LicenseProxy.initializer(license);
     RegistryProxy.initializer(registry);
     return ();
 }
@@ -213,16 +210,6 @@ func parentTokensOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 }
 
 @view
-func licenseVersion{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-) -> (
-        version: felt
-) {
-    let (license) = LicenseProxy.license();
-    let (version) = IDerivativeLicense.library_call_version(license);
-    return (version=version);
-}
-
-@view
 func allowToTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenId: Uint256
 ) -> (
@@ -232,8 +219,7 @@ func allowToTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     with_attr error_message("DerivativeToken: query for nonexistent token") {
         assert exists = TRUE;
     }
-    let (license) = LicenseProxy.license();
-    let (allowed) = IDerivativeLicense.library_call_allowToTransfer(license, tokenId);
+    let (allowed) = DerivativeLicense.allow_to_transfer(tokenId);
     return (allowed=allowed);
 }
 
@@ -263,9 +249,8 @@ func allowToMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     with_attr error_message("DerivativeToken: query for nonexistent token") {
         assert exists = TRUE;
     }
-    let (license) = LicenseProxy.license();
     let (owner) = ERC721.owner_of(tokenId);
-    let (allowed) = IDerivativeLicense.library_call_allowToMint(license, tokenId, owner, to);
+    let (allowed) = DerivativeLicense.allow_to_mint(tokenId, owner, to);
     return (allowed=allowed);
 }
 
@@ -280,8 +265,7 @@ func royalties{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     with_attr error_message("DerivativeToken: query for nonexistent token") {
         assert exists = TRUE;
     }
-    let (license) = LicenseProxy.license();
-    let (royalties_len, royalties) = IDerivativeLicense.library_call_royalties(license, tokenId);
+    let (royalties_len, royalties) = DerivativeLicense.royalties(tokenId);
     return (royalties_len=royalties_len, royalties=royalties);
 }
 
@@ -295,8 +279,7 @@ func isDragAlong{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     with_attr error_message("DerivativeToken: query for nonexistent token") {
         assert exists = TRUE;
     }
-    let (license) = LicenseProxy.license();
-    let (res) = IDerivativeLicense.library_call_isDragAlong(license, tokenId);
+    let (res) = DerivativeLicense.is_drag_along(tokenId);
     return (res=res);
 }
 
@@ -306,8 +289,7 @@ func collectionSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
 ) -> (
         value: felt
 ) {
-    let (license) = LicenseProxy.license();
-    let (value) = IDerivativeLicense.library_call_collectionSettings(license, key);
+    let (value) = DerivativeLicense.collection_settings(key);
     return (value=value);
 }
 
@@ -318,8 +300,7 @@ func collectionArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
         values_len: felt,
         values: felt*
 ) {
-    let (license) = LicenseProxy.license();
-    let (values_len, values) = IDerivativeLicense.library_call_collectionArraySettings(license, key);
+    let (values_len, values) = DerivativeLicense.collection_array_settings(key);
     return (values_len=values_len, values=values);
 }
 
@@ -334,8 +315,7 @@ func tokenSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     with_attr error_message("DerivativeToken: query for nonexistent token") {
         assert exists = TRUE;
     }
-    let (license) = LicenseProxy.license();
-    let (value) = IDerivativeLicense.library_call_tokenSettings(license, tokenId, key);
+    let (value) = DerivativeLicense.token_settings(tokenId, key);
     return (value=value);
 }
 
@@ -351,8 +331,7 @@ func tokenArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
     with_attr error_message("DerivativeToken: query for nonexistent token") {
         assert exists = TRUE;
     }
-    let (license) = LicenseProxy.license();
-    let (values_len, values) = IDerivativeLicense.library_call_tokenArraySettings(license, tokenId, key);
+    let (values_len, values) = DerivativeLicense.token_array_settings(tokenId, key);
     return (values_len=values_len, values=values);
 }
 
@@ -367,8 +346,7 @@ func authorSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     with_attr error_message("DerivativeToken: query for nonexistent token") {
         assert exists = TRUE;
     }
-    let (license) = LicenseProxy.license();
-    let (value) = IDerivativeLicense.library_call_authorSettings(license, tokenId, key);
+    let (value) = DerivativeLicense.author_settings(tokenId, key);
     return (value=value);
 }
 
@@ -384,8 +362,7 @@ func authorArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     with_attr error_message("DerivativeToken: query for nonexistent token") {
         assert exists = TRUE;
     }
-    let (license) = LicenseProxy.license();
-    let (values_len, values) = IDerivativeLicense.library_call_authorArraySettings(license, tokenId, key);
+    let (values_len, values) = DerivativeLicense.author_array_settings(tokenId, key);
     return (values_len=values_len, values=values);
 }
 
@@ -406,15 +383,6 @@ func isAdmin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 ) {
     let (res) = AccessControl.has_role(ADMIN_ROLE, user);
     return (res=res);
-}
-
-@view
-func license{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-) -> (
-        license: felt
-) {
-    let (license) = LicenseProxy.license();
-    return (license=license);
 }
 
 @view
@@ -598,8 +566,7 @@ func setCollectionSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
         value: felt
 ) {
     Ownable.assert_only_owner();
-    let (license) = LicenseProxy.license();
-    IDerivativeLicense.library_call_setCollectionSettings(license, key, value);
+    DerivativeLicense.set_collection_settings(key, value);
     return ();
 }
 
@@ -611,8 +578,7 @@ func setCollectionArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
 ) {
     alloc_locals;
     Ownable.assert_only_owner();
-    let (license) = LicenseProxy.license();
-    IDerivativeLicense.library_call_setCollectionArraySettings(license, key, values_len, values);
+    DerivativeLicense.set_collection_array_settings(key, values_len, values);
     return ();
 }
 
@@ -627,8 +593,7 @@ func setTokenSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     with_attr error_message("DerivativeToken: set for nonexistent token") {
         assert exists = TRUE;
     }
-    let (license) = LicenseProxy.license();
-    IDerivativeLicense.library_call_setTokenSettings(license, tokenId, key, value);
+    DerivativeLicense.set_token_settings(tokenId, key, value);
     return ();
 }
 
@@ -645,8 +610,7 @@ func setTokenArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
     with_attr error_message("DerivativeToken: set for nonexistent token") {
         assert exists = TRUE;
     }
-    let (license) = LicenseProxy.license();
-    IDerivativeLicense.library_call_setTokenArraySettings(license, tokenId, key, values_len, values);
+    DerivativeLicense.set_token_array_settings(tokenId, key, values_len, values);
     return ();
 }
 
@@ -661,8 +625,7 @@ func setAuthorSettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     with_attr error_message("DerivativeToken: set for nonexistent token") {
         assert exists = TRUE;
     }
-    let (license) = LicenseProxy.license();
-    IDerivativeLicense.library_call_setAuthorSettings(license, tokenId, key, value);
+    DerivativeLicense.set_author_settings(tokenId, key, value);
     return ();
 }
 
@@ -679,8 +642,7 @@ func setAuthorArraySettings{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
     with_attr error_message("DerivativeToken: set for nonexistent token") {
         assert exists = TRUE;
     }
-    let (license) = LicenseProxy.license();
-    IDerivativeLicense.library_call_setAuthorArraySettings(license, tokenId, key, values_len, values);
+    DerivativeLicense.set_author_array_settings(tokenId, key, values_len, values);
     return ();
 }
 
@@ -725,15 +687,6 @@ func upgrade{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 ) {
     Proxy.assert_only_admin();
     Proxy._set_implementation_hash(newImplementation);
-    return ();
-}
-
-@external
-func upgradeLicense{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        newLicense: felt
-) {
-    Proxy.assert_only_admin();
-    LicenseProxy._set_license(newLicense);
     return ();
 }
 

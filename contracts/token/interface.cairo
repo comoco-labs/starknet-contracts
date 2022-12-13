@@ -84,9 +84,6 @@ namespace IDerivativeToken {
 //  License
 //
 
-//  func licenseVersion() -> (version: felt) {
-//  }
-
     func allowToTransfer(tokenId: Uint256) -> (allowed: felt) {
     }
 
@@ -165,12 +162,6 @@ namespace IDerivativeToken {
 //  }
 
 //  func upgrade(newImplementation: felt) {
-//  }
-
-//  func license() -> (license: felt) {
-//  }
-
-//  func upgradeLicense(newLicense: felt) {
 //  }
 
 //  func registry() -> (registry: felt) {

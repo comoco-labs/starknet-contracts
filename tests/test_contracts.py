@@ -14,7 +14,6 @@ COLLECTION_ADMIN_ADDRESS = 0x3333333333333333333333333333333333333333
 PROXY_FILE = os.path.join('contracts', 'proxy', 'Proxy.cairo')
 REGISTRY_FILE = os.path.join('contracts', 'registry', 'TokenRegistry.cairo')
 TOKEN_FILE = os.path.join('contracts', 'token', 'DerivativeToken.cairo')
-LICENSE_FILE = os.path.join('contracts', 'license', 'DerivativeLicense.cairo')
 
 INITIALIZER_SELECTOR = get_selector_from_name('initializer')
 NAME = str_to_felt('name')
@@ -32,7 +31,6 @@ async def contracts_init():
 
     registry_class = await starknet.declare(REGISTRY_FILE)
     token_class = await starknet.declare(TOKEN_FILE)
-    license_class = await starknet.declare(LICENSE_FILE)
 
     registry_contract = await starknet.deploy(
         source=PROXY_FILE,
@@ -50,12 +48,11 @@ async def contracts_init():
         constructor_calldata=[
             token_class.class_hash,
             INITIALIZER_SELECTOR,
-            6,
+            5,
             PROXY_ADMIN_ADDRESS,
             NAME,
             SYMBOL,
             COLLECTION_OWNER_ADDRESS,
-            license_class.class_hash,
             registry_contract.contract_address
         ]
     )

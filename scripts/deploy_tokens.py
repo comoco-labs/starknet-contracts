@@ -25,9 +25,6 @@ COMPILED_PROXY_FILE = os.path.join(
 COMPILED_TOKEN_FILE = os.path.join(
     'artifacts', 'DerivativeToken.json'
 )
-COMPILED_LICENSE_FILE = os.path.join(
-    'artifacts', 'DerivativeLicense.json'
-)
 
 REGISTRY_ABI_FILE = os.path.join(
     'artifacts', 'abis', 'TokenRegistry.json'
@@ -94,7 +91,6 @@ async def deploy_token_contract(
     compiled_proxy_contract: str,
     token_abi: AbiType,
     token_class_hash: int,
-    license_class_hash: int,
     registry_contract_address: int,
     config: dict
 ) -> Contract:
@@ -109,7 +105,6 @@ async def deploy_token_contract(
                 config['name'],
                 config['symbol'],
                 account_clients['comoco_admin'].address,
-                license_class_hash,
                 registry_contract_address
             ]
         ],
@@ -167,21 +162,13 @@ async def main():
     )
     save_hash('Token Class', token_class_hash)
 
-    print("Declaring DerivativeLicense class...")
-    license_class_hash = await declare_contract(
-        gateway_client,
-        account_clients['comoco_dev'],
-        load_compiled_contract(COMPILED_LICENSE_FILE)
-    )
-    save_hash('License Class', license_class_hash)
-
     compiled_proxy_contract = load_compiled_contract(COMPILED_PROXY_FILE)
     token_abi = load_abi(TOKEN_ABI_FILE)
     for token, config in TOKENS_CONFIG.items():
         print(f"Deploying DerivativeToken contract for {token}...")
         token_contract = await deploy_token_contract(
-            gateway_client, account_clients, compiled_proxy_contract, token_abi,
-            token_class_hash, license_class_hash, registry_contract.address, config
+            gateway_client, account_clients, compiled_proxy_contract,
+            token_abi, token_class_hash, registry_contract.address, config
         )
         save_hash(token + ' Contract', token_contract.address)
 
