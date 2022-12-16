@@ -52,7 +52,7 @@ func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     AccessControl._set_role_admin(ADMIN_ROLE, OWNER_ROLE);
     AccessControl._set_role_admin(OWNER_ROLE, OWNER_ROLE);
     AccessControl._grant_role(OWNER_ROLE, owner);
-    RegistryProxy.initializer(registry);
+    RegistryProxy._set_registry(registry);
     return ();
 }
 

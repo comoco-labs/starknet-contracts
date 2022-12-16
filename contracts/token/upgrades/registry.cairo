@@ -24,17 +24,6 @@ func RegistryProxy_registry() -> (registry: felt) {
 namespace RegistryProxy {
 
     //
-    // Initializer
-    //
-
-    func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        registry: felt
-    ) {
-        _set_registry(registry);
-        return ();
-    }
-
-    //
     // Getters
     //
 
