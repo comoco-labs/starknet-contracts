@@ -1,10 +1,9 @@
 import os
 import pytest
 
+from nile.utils import assert_revert, str_to_felt, to_uint
 from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starknet.testing.starknet import Starknet, StarknetContract
-
-from utils import assert_revert, str_to_felt, to_uint
 
 
 PROXY_ADMIN_ADDRESS = 0x1111111111111111111111111111111111111111
