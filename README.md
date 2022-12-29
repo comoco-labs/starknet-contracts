@@ -48,11 +48,11 @@ or
 
         python scripts/deploy_tokens.py --registry_address REGISTRY_ADDRESS  # Results are appended to the deployments.txt file
 
-### For testnet/mainnet
+### For live networks
 
 1. Create new accounts
 
-    Either with `starknet deploy_account --account ACCOUNT_NAME` command, or from Argent-X/Braavos wallet, and export to a json file in the following format:
+    Either with `starknet new_account --account ACCOUNT_NAME` followed by `starknet deploy_account --account ACCOUNT_NAME` command, or from Argent-X/Braavos wallet, create and export accounts to a json file in the following format:
 
         {
             "testnet": {
@@ -68,6 +68,9 @@ or
                     ...
                 }
             },
+            "testnet2": {
+                ...
+            },
             "mainnet": {
                 ...
             }
@@ -75,16 +78,12 @@ or
 
 2. Fund the accounts
 
-    Use the [faucet](https://faucet.goerli.starknet.io) for testnet, or other means for mainnet, to fund the following accounts:
-
-    - comoco_dev
-    - comoco_admin
+    Use the [faucet](https://faucet.goerli.starknet.io) for testnet, [ETH bridge](https://goerli.etherscan.io/address/0xaea4513378eb6023cf9ce730a26255d0e3f075b9#writeProxyContract) for testnet2, or other means for mainnet, to fund the accounts. More funds are needed for `comoco_admin` account.
 
 3. Deploy the contracts
 
     Run the same commands as in devnet with the following extra flags:
 
-        --network testnet|mainnet
+        --network testnet|testnet2|mainnet
         --accounts_file /path/to/accounts/file.json
-        [--version 0]  # For old accounts supporting only transaction version 0
         [--token ...]  # Obtained from application for alpha-mainnet deployment
