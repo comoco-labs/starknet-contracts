@@ -2,9 +2,8 @@ import argparse
 import asyncio
 import os
 
-from starknet_py.contract import Contract
+from starknet_py.contract import Contract, DeclareResult
 from starknet_py.net import AccountClient
-from starknet_py.net.gateway_client import GatewayClient
 from starkware.starknet.public.abi import AbiType
 from starkware.starknet.public.abi import get_selector_from_name
 
@@ -86,17 +85,15 @@ TOKENS_CONFIG = {
 
 
 async def deploy_token_contract(
-    gateway_client: GatewayClient,
-    account_clients: dict[str, AccountClient],
-    compiled_proxy_contract: str,
+    proxy_declare_result: DeclareResult,
     token_abi: AbiType,
     token_class_hash: int,
     registry_contract_address: int,
+    account_clients: dict[str, AccountClient],
     config: dict
 ) -> Contract:
-    token_contract_address = await deploy_contract(
-        gateway_client,
-        compiled_proxy_contract,
+    token_deploy_result = await deploy_contract(
+        proxy_declare_result,
         [
             token_class_hash,
             INITIALIZER_SELECTOR,
@@ -107,10 +104,13 @@ async def deploy_token_contract(
                 account_clients['comoco_admin'].address,
                 registry_contract_address
             ]
-        ],
-        wait_for_accept=True
+        ]
     )
-    return Contract(token_contract_address, token_abi, account_clients['comoco_admin'])
+    return Contract(
+        token_deploy_result.deployed_contract.address,
+        token_abi,
+        account_clients['comoco_admin']
+    )
 
 
 async def setup_token_contract(
@@ -147,7 +147,7 @@ async def main():
     )
     args = parse_arguments(parser)
 
-    gateway_client, account_clients = create_clients(args)
+    _, account_clients = create_clients(args)
     registry_contract = Contract(
         args.registry_address,
         load_abi(REGISTRY_ABI_FILE),
@@ -155,20 +155,25 @@ async def main():
     )
 
     print("Declaring DerivativeToken class...")
-    token_class_hash = await declare_contract(
-        gateway_client,
+    token_declare_result = await declare_contract(
         account_clients['comoco_dev'],
         load_compiled_contract(COMPILED_TOKEN_FILE)
     )
-    save_hash('Token Class', token_class_hash)
+    save_hash('Token Class', token_declare_result.class_hash)
 
-    compiled_proxy_contract = load_compiled_contract(COMPILED_PROXY_FILE)
+    print("Declaring Proxy class...")
+    proxy_declare_result = await declare_contract(
+        account_clients['comoco_dev'],
+        load_compiled_contract(COMPILED_PROXY_FILE)
+    )
     token_abi = load_abi(TOKEN_ABI_FILE)
+
     for token, config in TOKENS_CONFIG.items():
         print(f"Deploying DerivativeToken contract for {token}...")
         token_contract = await deploy_token_contract(
-            gateway_client, account_clients, compiled_proxy_contract,
-            token_abi, token_class_hash, registry_contract.address, config
+            proxy_declare_result, token_abi,
+            token_declare_result.class_hash, registry_contract.address,
+            account_clients, config
         )
         save_hash(token + ' Contract', token_contract.address)
 

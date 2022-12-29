@@ -62,21 +62,20 @@ async def main():
         help='The list of DerivativeToken addresses for whose implementation to upgrade'
     )
     args = parse_arguments(parser)
-    gateway_client, account_clients = create_clients(args)
+    _, account_clients = create_clients(args)
 
     print("Declaring DerivativeToken class...")
-    token_class_hash = await declare_contract(
-        gateway_client,
+    token_declare_result = await declare_contract(
         account_clients['comoco_dev'],
         load_compiled_contract(COMPILED_TOKEN_FILE)
     )
-    save_hash('Token Class', token_class_hash)
+    save_hash('Token Class', token_declare_result.class_hash)
 
     if args.token_addresses:
         await upgrade_tokens(
             account_clients['comoco_dev'],
             args.token_addresses,
-            token_class_hash
+            token_declare_result.class_hash
         )
 
 
