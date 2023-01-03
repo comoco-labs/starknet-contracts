@@ -31,6 +31,8 @@ ACCOUNT_NAMES = (
     'comoco_bank'
 )
 
+MAX_FEE = int(1e15)
+
 deploy_token = None
 output_file = 'deployments.txt'
 
@@ -114,7 +116,7 @@ async def declare_contract(
     declare_result = await Contract.declare(
         account=account_client,
         compiled_contract=compiled_contract,
-        auto_estimate=True
+        max_fee=MAX_FEE
     )
     if wait_for_accept:
         await declare_result.wait_for_acceptance()
@@ -128,7 +130,7 @@ async def deploy_contract(
 ) -> DeployResult:
     deploy_result = await declare_result.deploy(
         constructor_args=constructor_args,
-        auto_estimate=True
+        max_fee=MAX_FEE
     )
     if wait_for_accept:
         await deploy_result.wait_for_acceptance()

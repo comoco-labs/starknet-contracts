@@ -9,6 +9,7 @@ from starknet_py.net.client_models import Calls
 from starknet_py.transaction_exceptions import TransactionFailedError
 
 from common import (
+    MAX_FEE,
     create_clients,
     declare_contract,
     load_abi,
@@ -32,7 +33,7 @@ async def batch_upgrade(
     calls: Calls,
 ):
     print(f"Upgrading all DerivativeToken contracts...")
-    resp = await account_client.execute(calls=calls, auto_estimate=True)
+    resp = await account_client.execute(calls=calls, max_fee=MAX_FEE * len(calls))
     try:
         await account_client.wait_for_tx(resp.transaction_hash)
     except TransactionFailedError as e:
