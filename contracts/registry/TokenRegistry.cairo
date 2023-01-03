@@ -14,7 +14,7 @@ from contracts.registry.interface import IOwner
 // Constants
 //
 
-const VERSION = 2;
+const VERSION = 3;
 
 //
 // Events
