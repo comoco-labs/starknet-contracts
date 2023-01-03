@@ -27,30 +27,33 @@ INITIALIZER_SELECTOR = get_selector_from_name('initializer')
 async def main():
     parser = argparse.ArgumentParser()
     args = parse_arguments(parser)
-    gateway_client, account_clients = create_clients(args)
+    _, account_clients = create_clients(args)
 
     print("Declaring TokenRegistry class...")
-    registry_class_hash = await declare_contract(
-        gateway_client,
+    registry_declare_result = await declare_contract(
         account_clients['comoco_dev'],
         load_compiled_contract(COMPILED_REGISTRY_FILE)
     )
-    save_hash('Registry Class', registry_class_hash)
+    save_hash('Registry Class', registry_declare_result.class_hash)
+
+    print("Declaring Proxy class...")
+    proxy_declare_result = await declare_contract(
+        account_clients['comoco_dev'],
+        load_compiled_contract(COMPILED_PROXY_FILE)
+    )
 
     print("Deploying TokenRegistry contract...")
-    registry_contract_address = await deploy_contract(
-        gateway_client,
-        load_compiled_contract(COMPILED_PROXY_FILE),
+    registry_deploy_result = await deploy_contract(
+        proxy_declare_result,
         [
-            registry_class_hash,
+            registry_declare_result.class_hash,
             INITIALIZER_SELECTOR,
             [
                 account_clients['comoco_dev'].address
             ]
-        ],
-        wait_for_accept=True
+        ]
     )
-    save_hash('Registry Contract', registry_contract_address)
+    save_hash('Registry Contract', registry_deploy_result.deployed_contract.address)
 
 
 if __name__ == '__main__':

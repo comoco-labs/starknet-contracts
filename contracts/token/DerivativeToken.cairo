@@ -28,7 +28,7 @@ from contracts.token.upgrades.registry import RegistryProxy
 // Constants
 //
 
-const VERSION = 3;
+const VERSION = 4;
 
 const OWNER_ROLE = 'owner';
 const ADMIN_ROLE = 'admin';

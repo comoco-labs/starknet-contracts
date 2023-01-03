@@ -9,6 +9,7 @@ from starknet_py.net.client_models import Calls
 from starknet_py.transaction_exceptions import TransactionFailedError
 
 from common import (
+    MAX_FEE,
     create_clients,
     declare_contract,
     load_abi,
@@ -32,7 +33,7 @@ async def batch_upgrade(
     calls: Calls,
 ):
     print(f"Upgrading all DerivativeToken contracts...")
-    resp = await account_client.execute(calls=calls, auto_estimate=True)
+    resp = await account_client.execute(calls=calls, max_fee=MAX_FEE * len(calls))
     try:
         await account_client.wait_for_tx(resp.transaction_hash)
     except TransactionFailedError as e:
@@ -62,21 +63,20 @@ async def main():
         help='The list of DerivativeToken addresses for whose implementation to upgrade'
     )
     args = parse_arguments(parser)
-    gateway_client, account_clients = create_clients(args)
+    _, account_clients = create_clients(args)
 
     print("Declaring DerivativeToken class...")
-    token_class_hash = await declare_contract(
-        gateway_client,
+    token_declare_result = await declare_contract(
         account_clients['comoco_dev'],
         load_compiled_contract(COMPILED_TOKEN_FILE)
     )
-    save_hash('Token Class', token_class_hash)
+    save_hash('Token Class', token_declare_result.class_hash)
 
     if args.token_addresses:
         await upgrade_tokens(
             account_clients['comoco_dev'],
             args.token_addresses,
-            token_class_hash
+            token_declare_result.class_hash
         )
 
 
