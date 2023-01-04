@@ -2,6 +2,7 @@
 
 %lang starknet
 
+from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.math import assert_not_zero, assert_not_equal
@@ -22,6 +23,7 @@ from contracts.token.metadata.authorable import Authorable
 from contracts.token.metadata.derivable import Derivable
 from contracts.token.metadata.extension import ERC721Ext
 from contracts.token.metadata.license import DerivativeLicense
+from contracts.token.relations.library import PARENT
 from contracts.token.upgrades.registry import RegistryProxy
 
 //
@@ -207,6 +209,47 @@ func parentTokensOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     }
     let (parentTokens_len, parentTokens) = Derivable.parent_tokens_of(tokenId);
     return (parentTokens_len=parentTokens_len, parentTokens=parentTokens);
+}
+
+@view
+func relationsWith{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        otherToken: Token
+) -> (
+        relations_len: felt,
+        relations: felt*
+) {
+    alloc_locals;
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
+    let (local relations: felt*) = alloc();
+    let exists = Derivable.is_parent_token(tokenId, otherToken);
+    if (exists == FALSE) {
+        return (relations_len=0, relations=relations);
+    }
+    assert [relations] = PARENT;
+    return (relations_len=1, relations=relations);
+}
+
+@view
+func relatedTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        relation: felt
+) -> (
+        tokens_len: felt,
+        tokens: Token*
+) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
+    with_attr error_message("DerivativeToken: unrecognized relation {relation}") {
+        assert relation = PARENT;
+    }
+    let (parentTokens_len, parentTokens) = Derivable.parent_tokens_of(tokenId);
+    return (tokens_len=parentTokens_len, tokens=parentTokens);
 }
 
 @view
