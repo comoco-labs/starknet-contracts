@@ -3,10 +3,14 @@
 %lang starknet
 
 from starkware.cairo.common.alloc import alloc
+from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.uint256 import Uint256, uint256_check
 
+from openzeppelin.introspection.erc165.library import ERC165
+
 from contracts.common.token import Token
+from contracts.token.relations.library import IDERIVED_ID
 
 //
 // Events
@@ -39,6 +43,10 @@ func Derivable_parent_tokens(token_id: Uint256, index: felt) -> (token: Token) {
 }
 
 @storage_var
+func Derivable_is_parent_token(token_id: Uint256, other_token: Token) -> (res: felt) {
+}
+
+@storage_var
 func Derivable_child_tokens_len(token_id: Uint256) -> (len: felt) {
 }
 
@@ -46,7 +54,21 @@ func Derivable_child_tokens_len(token_id: Uint256) -> (len: felt) {
 func Derivable_child_tokens(token_id: Uint256, index: felt) -> (token: Token) {
 }
 
+@storage_var
+func Derivable_is_child_token(token_id: Uint256, other_token: Token) -> (res: felt) {
+}
+
 namespace Derivable {
+
+    //
+    // Initializer
+    //
+
+    func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    ) {
+        ERC165.register_interface(IDERIVED_ID);
+        return ();
+    }
 
     //
     // Getters
@@ -86,6 +108,28 @@ namespace Derivable {
         return (child_tokens_len=child_tokens_len, child_tokens=child_tokens);
     }
 
+    func is_parent_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+            token_id: Uint256,
+            other_token: Token
+    ) -> felt {
+        with_attr error_message("Derivable: token_id is not a valid Uint256") {
+            uint256_check(token_id);
+        }
+        let (res) = Derivable_is_parent_token.read(token_id, other_token);
+        return res;
+    }
+
+    func is_child_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+            token_id: Uint256,
+            other_token: Token
+    ) -> felt {
+        with_attr error_message("Derivable: token_id is not a valid Uint256") {
+            uint256_check(token_id);
+        }
+        let (res) = Derivable_is_child_token.read(token_id, other_token);
+        return res;
+    }
+
     //
     // Public
     //
@@ -101,6 +145,7 @@ namespace Derivable {
         }
 
         let (previous_parent_tokens_len, previous_parent_tokens) = parent_tokens_of(token_id);
+        _clear_is_parent_token(token_id, previous_parent_tokens_len, previous_parent_tokens);
         _set_parent_tokens(token_id, new_parent_tokens_len, new_parent_tokens);
         Derivable_parent_tokens_len.write(token_id, new_parent_tokens_len);
         ParentTokensChanged.emit(
@@ -123,6 +168,7 @@ namespace Derivable {
 
         let (previous_child_tokens_len, previous_child_tokens) = child_tokens_of(token_id);
         _set_child_tokens(token_id, new_child_tokens_len, new_child_tokens);
+        _clear_is_child_token(token_id, previous_child_tokens_len, previous_child_tokens);
         Derivable_child_tokens_len.write(token_id, new_child_tokens_len);
         ChildTokensChanged.emit(
                 token_id,
@@ -155,16 +201,44 @@ func _parent_tokens_of{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 
 func _child_tokens_of{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         token_id: Uint256,
-        child_tokens_len: felt,
-        child_tokens: Token*
+        child_tokens_index: felt,
+        child_tokens_ptr: Token*
 ) {
-    if (child_tokens_len == 0) {
+    if (child_tokens_index == 0) {
         return ();
     }
 
-    let (token) = Derivable_child_tokens.read(token_id, child_tokens_len - 1);
-    assert [child_tokens] = token;
-    _child_tokens_of(token_id, child_tokens_len - 1, child_tokens + Token.SIZE);
+    let (token) = Derivable_child_tokens.read(token_id, child_tokens_index - 1);
+    assert [child_tokens_ptr] = token;
+    _child_tokens_of(token_id, child_tokens_index - 1, child_tokens_ptr + Token.SIZE);
+    return ();
+}
+
+func _clear_is_parent_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        token_id: Uint256,
+        parent_tokens_index: felt,
+        parent_tokens_ptr: Token*
+) {
+    if (parent_tokens_index == 0) {
+        return ();
+    }
+
+    Derivable_is_parent_token.write(token_id, [parent_tokens_ptr], FALSE);
+    _clear_is_parent_token(token_id, parent_tokens_index - 1, parent_tokens_ptr + Token.SIZE);
+    return ();
+}
+
+func _clear_is_child_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        token_id: Uint256,
+        child_tokens_index: felt,
+        child_tokens_ptr: Token*
+) {
+    if (child_tokens_index == 0) {
+        return ();
+    }
+
+    Derivable_is_child_token.write(token_id, [child_tokens_ptr], FALSE);
+    _clear_is_child_token(token_id, child_tokens_index - 1, child_tokens_ptr + Token.SIZE);
     return ();
 }
 
@@ -178,20 +252,22 @@ func _set_parent_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
     }
 
     Derivable_parent_tokens.write(token_id, parent_tokens_index - 1, [parent_tokens_ptr]);
+    Derivable_is_parent_token.write(token_id, [parent_tokens_ptr], TRUE);
     _set_parent_tokens(token_id, parent_tokens_index - 1, parent_tokens_ptr + Token.SIZE);
     return ();
 }
 
 func _set_child_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         token_id: Uint256,
-        child_tokens_len: felt,
-        child_tokens: Token*
+        child_tokens_index: felt,
+        child_tokens_ptr: Token*
 ) {
-    if (child_tokens_len == 0) {
+    if (child_tokens_index == 0) {
         return ();
     }
 
-    Derivable_child_tokens.write(token_id, child_tokens_len - 1, [child_tokens]);
-    _set_child_tokens(token_id, child_tokens_len - 1, child_tokens + Token.SIZE);
+    Derivable_child_tokens.write(token_id, child_tokens_index - 1, [child_tokens_ptr]);
+    Derivable_is_child_token.write(token_id, [child_tokens_ptr], TRUE);
+    _set_child_tokens(token_id, child_tokens_index - 1, child_tokens_ptr + Token.SIZE);
     return ();
 }
