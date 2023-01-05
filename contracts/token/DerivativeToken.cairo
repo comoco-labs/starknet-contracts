@@ -23,7 +23,7 @@ from contracts.token.metadata.authorable import Authorable
 from contracts.token.metadata.derivable import Derivable
 from contracts.token.metadata.extension import ERC721Ext
 from contracts.token.metadata.license import DerivativeLicense
-from contracts.token.relations.library import PARENT
+from contracts.token.relations.library import PARENT, ITOKENRELATION_ID
 from contracts.token.upgrades.registry import RegistryProxy
 
 //
@@ -54,6 +54,8 @@ func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     AccessControl._set_role_admin(ADMIN_ROLE, OWNER_ROLE);
     AccessControl._set_role_admin(OWNER_ROLE, OWNER_ROLE);
     AccessControl._grant_role(OWNER_ROLE, owner);
+    Derivable.initializer();
+    ERC165.register_interface(ITOKENRELATION_ID);
     RegistryProxy._set_registry(registry);
     return ();
 }
@@ -161,10 +163,10 @@ func isApprovedForAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         owner: felt,
         operator: felt
 ) -> (
-        isApproved: felt
+        approved: felt
 ) {
-    let (isApproved) = ERC721.is_approved_for_all(owner, operator);
-    return (isApproved=isApproved);
+    let (approved) = ERC721.is_approved_for_all(owner, operator);
+    return (approved=approved);
 }
 
 @view
@@ -212,25 +214,18 @@ func parentTokensOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 }
 
 @view
-func relationsWith{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func isParentToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenId: Uint256,
         otherToken: Token
 ) -> (
-        relations_len: felt,
-        relations: felt*
+        res: felt
 ) {
-    alloc_locals;
     let exists = ERC721._exists(tokenId);
     with_attr error_message("DerivativeToken: query for nonexistent token") {
         assert exists = TRUE;
     }
-    let (local relations: felt*) = alloc();
-    let exists = Derivable.is_parent_token(tokenId, otherToken);
-    if (exists == FALSE) {
-        return (relations_len=0, relations=relations);
-    }
-    assert [relations] = PARENT;
-    return (relations_len=1, relations=relations);
+    let res = Derivable.is_parent_token(tokenId, otherToken);
+    return (res=res);
 }
 
 @view
@@ -250,6 +245,28 @@ func relatedTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     }
     let (parentTokens_len, parentTokens) = Derivable.parent_tokens_of(tokenId);
     return (tokens_len=parentTokens_len, tokens=parentTokens);
+}
+
+@view
+func relationsWith{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        otherToken: Token
+) -> (
+        relations_len: felt,
+        relations: felt*
+) {
+    alloc_locals;
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
+    let (local relations: felt*) = alloc();
+    let exists = Derivable.is_parent_token(tokenId, otherToken);
+    if (exists == FALSE) {
+        return (relations_len=0, relations=relations);
+    }
+    assert [relations] = PARENT;
+    return (relations_len=1, relations=relations);
 }
 
 @view
