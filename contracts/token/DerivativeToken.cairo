@@ -241,7 +241,7 @@ func relatedTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
         assert exists = TRUE;
     }
     with_attr error_message("DerivativeToken: unrecognized relation {relation}") {
-        assert relation = PARENT;
+        assert (relation - PARENT) = 0;
     }
     let (parentTokens_len, parentTokens) = Derivable.parent_tokens_of(tokenId);
     return (tokens_len=parentTokens_len, tokens=parentTokens);
