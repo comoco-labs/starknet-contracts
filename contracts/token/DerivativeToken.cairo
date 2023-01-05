@@ -224,7 +224,7 @@ func allowToTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
 }
 
 @view
-func allowTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func allowTransferring{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenId: Uint256
 ) -> (
         allowed: felt
@@ -234,7 +234,7 @@ func allowTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
         assert exists = TRUE;
     }
     let (parentTokens_len, parentTokens) = Derivable.parent_tokens_of(tokenId);
-    let allowed = _allow_transfer(parentTokens_len, parentTokens);
+    let allowed = _allow_transferring(parentTokens_len, parentTokens);
     return (allowed=allowed);
 }
 
@@ -449,7 +449,7 @@ func transferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
         with_attr error_message("DerivativeToken: cannot transfer secondary token") {
             assert secondary = FALSE;
         }
-        let (authorized) = allowTransfer(tokenId);
+        let (authorized) = allowTransferring(tokenId);
         with_attr error_message("DerivativeToken: token is not licensed to transfer") {
             assert authorized = TRUE;
         }
@@ -484,7 +484,7 @@ func safeTransferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         with_attr error_message("DerivativeToken: cannot transfer secondary token") {
             assert secondary = FALSE;
         }
-        let (authorized) = allowTransfer(tokenId);
+        let (authorized) = allowTransferring(tokenId);
         with_attr error_message("DerivativeToken: token is not licensed to transfer") {
             assert authorized = TRUE;
         }
@@ -503,7 +503,7 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenURI: felt*
 ) {
     assert_only_owner_or_admin();
-    let allowed = _allow_mint(to, parentTokens_len, parentTokens);
+    let allowed = _allow_minting(to, parentTokens_len, parentTokens);
     with_attr error_message("DerivativeToken: not licensed by parent tokens") {
         assert allowed = TRUE;
     }
@@ -552,7 +552,7 @@ func setParentTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
 ) {
     assert_only_owner_or_admin();
     let (owner) = ERC721.owner_of(tokenId);
-    let allowed = _allow_mint(owner, parentTokens_len, parentTokens);
+    let allowed = _allow_minting(owner, parentTokens_len, parentTokens);
     with_attr error_message("DerivativeToken: not licensed by parent tokens") {
         assert allowed = TRUE;
     }
@@ -767,7 +767,7 @@ func _is_secondary_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     }
 }
 
-func _allow_transfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func _allow_transferring{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         parent_tokens_index: felt,
         parent_tokens_ptr: Token*
 ) -> felt {
@@ -778,14 +778,14 @@ func _allow_transfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     if (allowed == FALSE) {
         return FALSE;
     }
-    let (allowed) = IDerivativeToken.allowTransfer(parent_tokens_ptr.collection, parent_tokens_ptr.id);
+    let (allowed) = IDerivativeToken.allowTransferring(parent_tokens_ptr.collection, parent_tokens_ptr.id);
     if (allowed == FALSE) {
         return FALSE;
     }
-    return _allow_transfer(parent_tokens_index - 1, parent_tokens_ptr + Token.SIZE);
+    return _allow_transferring(parent_tokens_index - 1, parent_tokens_ptr + Token.SIZE);
 }
 
-func _allow_mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func _allow_minting{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         to: felt,
         parent_tokens_index: felt,
         parent_tokens_ptr: Token*
@@ -797,5 +797,5 @@ func _allow_mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     if (allowed == FALSE) {
         return FALSE;
     }
-    return _allow_mint(to, parent_tokens_index - 1, parent_tokens_ptr + Token.SIZE);
+    return _allow_minting(to, parent_tokens_index - 1, parent_tokens_ptr + Token.SIZE);
 }

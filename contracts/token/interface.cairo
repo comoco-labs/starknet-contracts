@@ -87,7 +87,7 @@ namespace IDerivativeToken {
     func allowToTransfer(tokenId: Uint256) -> (allowed: felt) {
     }
 
-    func allowTransfer(tokenId: Uint256) -> (allowed: felt) {
+    func allowTransferring(tokenId: Uint256) -> (allowed: felt) {
     }
 
     func allowToMint(tokenId: Uint256, to: felt) -> (allowed: felt) {
