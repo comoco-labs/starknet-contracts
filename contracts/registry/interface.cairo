@@ -29,9 +29,6 @@ namespace ITokenRegistry {
 //  func version() -> (version: felt) {
 //  {
 
-//  func getImplementationHash() -> (implementation: felt) {
-//  }
-
 //  func upgrade(newImplementation: felt) {
 //  }
 
