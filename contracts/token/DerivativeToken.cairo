@@ -23,7 +23,8 @@ from contracts.token.metadata.authorable import Authorable
 from contracts.token.metadata.derivable import Derivable
 from contracts.token.metadata.extension import ERC721Ext
 from contracts.token.metadata.license import DerivativeLicense
-from contracts.token.relations.library import PARENT, ITOKENRELATION_ID
+from contracts.token.metadata.optionable import Optionable
+from contracts.token.relations.library import PARENT, DERIVATIVE_RIGHT, ITOKENRELATION_ID
 from contracts.token.upgrades.registry import RegistryProxy
 
 //
@@ -55,6 +56,7 @@ func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     AccessControl._set_role_admin(OWNER_ROLE, OWNER_ROLE);
     AccessControl._grant_role(OWNER_ROLE, owner);
     Derivable.initializer();
+    Optionable.initializer();
     ERC165.register_interface(ITOKENRELATION_ID);
     RegistryProxy._set_registry(registry);
     return ();
@@ -229,6 +231,36 @@ func isParentToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 }
 
 @view
+func derivativeRightsOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256
+) -> (
+        derivativeRights_len: felt,
+        derivativeRights: Token*
+) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
+    let (derivativeRights_len, derivativeRights) = Optionable.derivative_rights_of(tokenId);
+    return (derivativeRights_len=derivativeRights_len, derivativeRights=derivativeRights);
+}
+
+@view
+func isDerivativeRight{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        otherToken: Token
+) -> (
+        res: felt
+) {
+    let exists = ERC721._exists(tokenId);
+    with_attr error_message("DerivativeToken: query for nonexistent token") {
+        assert exists = TRUE;
+    }
+    let res = Optionable.is_derivative_right(tokenId, otherToken);
+    return (res=res);
+}
+
+@view
 func relatedTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tokenId: Uint256,
         relation: felt
@@ -236,15 +268,21 @@ func relatedTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
         tokens_len: felt,
         tokens: Token*
 ) {
+    // TODO: Double check
     let exists = ERC721._exists(tokenId);
     with_attr error_message("DerivativeToken: query for nonexistent token") {
         assert exists = TRUE;
     }
     with_attr error_message("DerivativeToken: unrecognized relation {relation}") {
-        assert (relation - PARENT) = 0;
+        assert (relation - PARENT) * (relation - DERIVATIVE_RIGHT) = 0;
     }
-    let (parentTokens_len, parentTokens) = Derivable.parent_tokens_of(tokenId);
-    return (tokens_len=parentTokens_len, tokens=parentTokens);
+
+    if (relation == PARENT) {
+        let (tokens_len, tokens) = Derivable.parent_tokens_of(tokenId);
+    } else {
+        let (tokens_len, tokens) = Optionable.derivative_rights_of(tokenId);
+    }
+    return (tokens_len=tokens_len, tokens=tokens);
 }
 
 @view
@@ -255,18 +293,26 @@ func relationsWith{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
         relations_len: felt,
         relations: felt*
 ) {
+    // TODO: Double check
     alloc_locals;
     let exists = ERC721._exists(tokenId);
     with_attr error_message("DerivativeToken: query for nonexistent token") {
         assert exists = TRUE;
     }
+
+    local relations_len = 0;
     let (local relations: felt*) = alloc();
-    let exists = Derivable.is_parent_token(tokenId, otherToken);
-    if (exists == FALSE) {
-        return (relations_len=0, relations=relations);
+    let res = Derivable.is_parent_token(tokenId, otherToken);
+    if (res == TRUE) {
+        assert [relations + relations_len] = PARENT;
+        relations_len = relations_len + 1;
     }
-    assert [relations] = PARENT;
-    return (relations_len=1, relations=relations);
+    let res = Optionable.is_derivative_right(tokenId, otherToken);
+    if (res == TRUE) {
+        assert [relations + relations_len] = DERIVATIVE_RIGHT;
+        relations_len = relations_len + 1;
+    }
+    return (relations_len=relations_len, relations=relations);
 }
 
 @view
@@ -310,6 +356,7 @@ func allowToMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
         assert exists = TRUE;
     }
     let (owner) = ERC721.owner_of(tokenId);
+    // TODO: Obtain all derivative rights, check if "to" holds enough balance
     let (allowed) = DerivativeLicense.allow_to_mint(tokenId, owner, to);
     return (allowed=allowed);
 }
@@ -572,6 +619,7 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     Authorable.set_author(tokenId, to);
     Derivable.set_parent_tokens(tokenId, parentTokens_len, parentTokens);
     ERC721Ext.set_token_uri(tokenId, tokenURI_len, tokenURI);
+    // TODO: Burn from options of parent tokens
     return ();
 }
 
@@ -610,6 +658,7 @@ func setParentTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
         parentTokens_len: felt,
         parentTokens: Token*
 ) {
+    // TODO: Check caller access and tokens are DerivativeTokens
     assert_only_owner_or_admin();
     let (owner) = ERC721.owner_of(tokenId);
     let allowed = _allow_minting(owner, parentTokens_len, parentTokens);
@@ -618,6 +667,34 @@ func setParentTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     }
     Derivable.set_parent_tokens(tokenId, parentTokens_len, parentTokens);
     return ();
+}
+
+@external
+func addDerivativeRights{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        derivativeRights_len: felt,
+        derivativeRights: Token*
+) {
+    // TODO: Check token exists and caller access and tokens are DerivativeOptions
+    Optionable.add_derivative_rights(tokenId, derivativeRights_len, derivativeRights);
+    return ();
+}
+
+@external
+func issueDerivativeOption{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        tokenId: Uint256,
+        optionAddress: felt,
+        optionValue: felt
+) -> (
+        option: Token
+) {
+    // TODO: Implement
+    // 1) Check token exists and caller access
+    // 2) If optionAddress is zero, deploy new DerivativeOption contract; otherwise check caller permission
+    // 3) Mint in DerivativeOption with optionValue
+    // 4) Add newly minted token in DERIVATIVE_RIGHT relation
+    // 5) Return token
+    return (option=Token(0, Uint256(0, 0)));
 }
 
 @external

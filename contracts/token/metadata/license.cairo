@@ -87,6 +87,7 @@ namespace DerivativeLicense {
     ) -> (
             allowed: felt
     ) {
+        // TODO: Change
         with_attr error_message("DerivativeLicense: token_id is not a valid Uint256") {
             uint256_check(token_id);
         }
