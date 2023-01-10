@@ -10,7 +10,7 @@ from starkware.cairo.common.uint256 import Uint256, uint256_check
 from openzeppelin.introspection.erc165.library import ERC165
 
 from contracts.common.token import Token
-from contracts.token.relations.library import IDERIVED_ID
+from contracts.token.relations.library import IPARENTRELATION_ID, ICHILDRELATION_ID
 
 //
 // Events
@@ -66,7 +66,8 @@ namespace Derivable {
 
     func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     ) {
-        ERC165.register_interface(IDERIVED_ID);
+        ERC165.register_interface(IPARENTRELATION_ID);
+        ERC165.register_interface(ICHILDRELATION_ID);
         return ();
     }
 

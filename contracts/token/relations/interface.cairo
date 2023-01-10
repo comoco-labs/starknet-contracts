@@ -18,12 +18,34 @@ namespace ITokenRelation {
 }
 
 @contract_interface
-namespace IDerived {
+namespace IParentRelation {
 
     func parentTokensOf(tokenId: Uint256) -> (parentTokens_len: felt, parentTokens: Token*) {
     }
 
     func isParentToken(tokenId: Uint256, otherToken: Token) -> (res: felt) {
+    }
+
+}
+
+@contract_interface
+namespace IChildRelation {
+
+    func childTokensOf(tokenId: Uint256) -> (childTokens_len: felt, childTokens: Token*) {
+    }
+
+    func isChildToken(tokenId: Uint256, otherToken: Token) -> (res: felt) {
+    }
+
+}
+
+@contract_interface
+namespace IDerivativeRightRelation {
+
+    func derivativeRightsOf(tokenId: Uint256) -> (derivativeRights_len: felt, derivativeRights: Token*) {
+    }
+
+    func isDerivativeRight(tokenId: Uint256, otherToken: Token) -> (res: felt) {
     }
 
 }
